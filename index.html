@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-key="pageTitle">FindExpert.ir | پل ارتباطی دانشگاه و صنعت</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.17.0",
+        "jspdf": "https://esm.sh/jspdf@2.5.1",
+        "docx": "https://esm.sh/docx@8.5.0"
+      }
+    }
+    </script>
+    <style>
+        :root {
+            --primary-color: #005f73;
+            --secondary-color: #0a9396;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --border-color: #dee2e6;
+            --error-color: #e74c3c;
+            --accent-color: #ee9b00;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        body.lang-fa {
+            font-family: 'Vazirmatn', sans-serif;
+            --text-align-start: right;
+            --direction: rtl;
+        }
+        body.lang-en {
+            font-family: 'Poppins', sans-serif;
+            --text-align-start: left;
+            --direction: ltr;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+        header {
+            background: var(--card-bg);
+            box-shadow: 0 2px 4px var(--shadow-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.75rem;
+            color: var(--primary-color);
+        }
+        .logo svg {
+            width: 40px;
+            height: 40px;
+        }
+        .lang-switcher {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .lang-switcher button {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 500;
+        }
+        .lang-switcher button:hover {
+            background-color: #f1f3f4;
+        }
+        .lang-switcher button.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        main {
+            flex-grow: 1;
+        }
+        .page-section {
+            padding: 3rem 0;
+        }
+        .page-section:nth-child(odd) {
+            background-color: #fff;
+        }
+        .section-title {
+            text-align: center;
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 2.5rem;
+            color: var(--primary-color);
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 1rem;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.25rem;
+            max-width: 700px;
+            margin: 0 auto 2rem auto;
+            color: #495057;
+        }
+        .hero .cta-button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 0.8rem 2.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .hero .cta-button:hover {
+            background-color: #ca6702;
+            transform: translateY(-3px);
+        }
+
+        /* Content Sections */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .content-card {
+             background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 2rem;
+        }
+        body.lang-fa .content-card { border-right: 4px solid var(--secondary-color); }
+        body.lang-en .content-card { border-left: 4px solid var(--secondary-color); }
+        .content-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: var(--text-align-start);
+        }
+        .comparison-table thead {
+            background-color: #e9ecef;
+        }
+        .comparison-table th {
+            font-weight: 600;
+        }
+        .comparison-table tbody tr:hover {
+            background-color: #f1f3f4;
+        }
+
+        /* Reports Section */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .report-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px var(--shadow-color);
+        }
+        .report-card-icon {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+        .report-card-icon svg {
+            width: 60px;
+            height: 60px;
+        }
+        .report-card-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+        }
+        .report-card-content h4 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .report-card-links {
+            padding: 0 1.5rem 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .report-card-links a {
+            text-decoration: none;
+            color: var(--secondary-color);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .report-card-links a:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .report-card-links a svg {
+             width: 18px; height: 18px;
+        }
+
+        /* Helper Tools Section */
+        .tool-accordion {
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #fff;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        .accordion-header {
+            background: #fff;
+            color: var(--primary-color);
+            padding: 1.5rem;
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            outline: none;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: inherit;
+            text-align: var(--text-align-start);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .tool-accordion.active .accordion-header {
+            border-bottom-color: transparent;
+        }
+        .accordion-header:hover {
+            background-color: #f8f9fa;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease-out;
+            padding: 0 1.5rem;
+        }
+        .accordion-content .main-grid {
+            padding: 2rem 0;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        @media (max-width: 992px) {
+            .accordion-content .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- Tool Specific Styles --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        .form-card h2, .form-card h3 {
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);
+            font-family: inherit; font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 95, 115, 0.2);
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        .button-group { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        button {
+            display: flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; border: none;
+            border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s; font-family: inherit; gap: 0.5rem;
+        }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        #generate-btn, #findGrantsSubmitBtn, #findRfpsSubmitBtn, #findCustomSubmitBtn, #analyzeGrantBtn, #generateVideoBtn { background-color: var(--primary-color); color: white; flex-grow: 1; }
+        #generate-btn:hover:not(:disabled), #findGrantsSubmitBtn:hover:not(:disabled), #findRfpsSubmitBtn:hover:not(:disabled), #findCustomSubmitBtn:hover:not(:disabled), #analyzeGrantBtn:hover:not(:disabled), #generateVideoBtn:hover:not(:disabled) { background-color: #003f5c; transform: translateY(-2px); }
+        #clear-btn, #clearGrantsBtn, #clearRfpsBtn, #clearCustomBtn, #clearAdoptBtn, #clearVideoBtn { background-color: #ecf0f1; color: var(--text-color); }
+        #clear-btn:hover:not(:disabled), #clearGrantsBtn:hover:not(:disabled), #clearRfpsBtn:hover:not(:disabled), #clearCustomBtn:hover:not(:disabled), #clearAdoptBtn:hover:not(:disabled), #clearVideoBtn:hover:not(:disabled) { background-color: #bdc3c7; }
+        .output-card { position: sticky; top: 100px; }
+        #generated-report, #grant-report-container, #rfp-report-container, #custom-report-container, #adopt-report-container, #video-report-container { 
+            min-height: 300px; padding: 1.5rem; border: 1px dashed var(--border-color); border-radius: 8px; 
+            white-space: pre-wrap; word-wrap: break-word; font-size: 0.95rem; line-height: 1.7; 
+            text-align: var(--text-align-start); direction: var(--direction);
+        }
+        #grant-report-container, #rfp-report-container, #custom-report-container, #adopt-report-container { margin-bottom: 1.5rem; }
+        .placeholder-text { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%; color: #7f8c8d; }
+        .placeholder-text svg { width: 50px; height: 50px; margin-bottom: 1rem; fill: #bdc3c7; }
+        #copy-btn { display: none; position: absolute; top: 1rem; background-color: rgba(255, 255, 255, 0.8); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.5rem 1rem; backdrop-filter: blur(5px); }
+        body.lang-fa #copy-btn { left: 1rem; right: auto; }
+        body.lang-en #copy-btn { right: 1rem; left: auto; }
+        .spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #errorDisplay, #grantFinderErrorDisplay, #rfpFinderErrorDisplay, #customFinderErrorDisplay, #adoptFinderErrorDisplay, #videoFinderErrorDisplay { display: none; color: var(--error-color); background-color: rgba(231, 76, 60, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid var(--error-color); margin-top: 1.5rem; margin-bottom: 1.5rem; text-align: left; direction: ltr; }
+        .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        #grantFinderSourcesWrapper, #rfpFinderSourcesWrapper, #customFinderSourcesWrapper, #adoptFinderSourcesWrapper { display: none; margin-top: 1rem; text-align: left; direction: ltr; }
+        #grantFinderSourcesWrapper h4, #rfpFinderSourcesWrapper h4, #customFinderSourcesWrapper h4, #adoptFinderSourcesWrapper h4 { margin-bottom: 0.5rem; }
+        #grantFinderSources, #rfpFinderSources, #customFinderSources, #adoptFinderSources { list-style-type: disc; padding-left: 20px; }
+        #grantFinderSources a, #rfpFinderSources a, #customFinderSources a, #adoptFinderSources a { color: var(--primary-color); text-decoration: none; }
+        #grantFinderSources a:hover, #rfpFinderSources a:hover, #customFinderSources a:hover, #adoptFinderSources a:hover { text-decoration: underline; }
+        
+        /* New Result Card Styles */
+        .result-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: box-shadow 0.3s;
+        }
+        .result-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .result-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .result-card .organization {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        .result-card .summary {
+            color: var(--text-color);
+            margin-bottom: 1.25rem;
+        }
+        .result-card .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        .result-card .detail-item {
+            font-size: 0.9rem;
+        }
+        .result-card .detail-label {
+            font-weight: 600;
+            color: #495057;
+            margin-inline-end: 0.5rem;
+        }
+        .result-card .detail-value.deadline {
+            color: #c0392b;
+            font-weight: 500;
+        }
+        .result-card .detail-value.amount {
+            color: #27ae60;
+            font-weight: 500;
+        }
+        .result-card .result-link {
+            display: inline-block;
+            margin-top: 1.25rem;
+            padding: 0.5rem 1rem;
+            background-color: #f1f3f4;
+            border-radius: 6px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .result-card .result-link:hover {
+            background-color: #e9ecef;
+        }
+        .result-card .adopt-button {
+            margin-top: 1.25rem;
+            margin-inline-start: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .result-card .adopt-button:hover {
+            background-color: #ca6702;
+        }
+        
+        .export-buttons-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.5rem;
+        }
+        .export-buttons-group button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .export-buttons-group button:hover:not(:disabled) {
+            background-color: var(--primary-color);
+        }
+        .spinner-large {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+            border: 4px solid rgba(0, 95, 115, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        #downloadVideoBtn {
+            display: flex;
+            text-decoration: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            font-family: inherit;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            background-color: var(--accent-color);
+            color: white;
+        }
+        #downloadVideoBtn:hover {
+            background-color: #ca6702;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: #fff;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: auto;
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="lang-fa">
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5 4-4 4 4 1.5-1.5-5.5-5.5-5.5 5.5z"/></svg>
+                <h1 data-key="brandName">FindExpert.ir</h1>
+            </div>
+            <div class="lang-switcher">
+                <button id="lang-fa" data-lang="fa">فارسی</button>
+                <button id="lang-en" data-lang="en">English</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1 data-key="heroTitle">تقویت ارتباط دانشگاه و صنعت</h1>
+                <p data-key="heroSubtitle">
+                    ارتباط ضعیف دانشگاه و صنعت در ایران یک چالش بزرگ است. تحقیقات نشان می‌دهد فقط ۷٪ از اعضای هیئت علمی در پروژه‌های صنعتی مشارکت دارند. وقت آن است که با ابزارهایی مثل FindExpert.ir این شکاف را پر کنیم.
+                </p>
+                <a href="#reports-section" class="cta-button" data-key="heroCta">مشاهده گزارشات پروژه</a>
+            </div>
+        </section>
+
+        <section class="page-section">
+            <div class="container">
+                <div class="content-grid">
+                    <div class="content-card">
+                        <h3 data-key="analysisTitle">تحلیل وضعیت کنونی</h3>
+                        <ul>
+                            <li data-key="analysisPoint1"><strong>مشارکت محدود:</strong> تنها حدود ۵,۸۴۳ نفر از ۸۶,۰۰۰ عضو هیئت علمی در پروژه‌های صنعتی فعال هستند.</li>
+                            <li data-key="analysisPoint2"><strong>نیاز به فناوری:</strong> پلتفرم‌هایی مثل FindExpert.ir می‌توانند با کاهش بروکراسی و افزایش شفافیت، همکاری بین دانشگاه و صنعت را تقویت کنند.</li>
+                            <li data-key="analysisPoint3"><strong>تأثیرات بالقوه:</strong> این ابزارها می‌توانند به تجاری‌سازی پژوهش و رشد اقتصاد دانش‌بنیان کمک شایانی کنند.</li>
+                        </ul>
+                    </div>
+                     <div class="content-card">
+                        <h3 data-key="comparisonTitle">مقایسه جهانی</h3>
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th data-key="tableHeaderCountry">کشور/منطقه</th>
+                                    <th data-key="tableHeaderParticipation">درصد مشارکت دانشگاه در پروژه‌های صنعتی</th>
+                                    <th data-key="tableHeaderInitiatives">طرح‌های کلیدی</th>
+                                    <th data-key="tableHeaderImpacts">تأثیرات مشاهده‌شده</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td data-key="countryIran"><strong>ایران</strong></td>
+                                    <td data-key="iranParticipation">۷٪ (اعضای هیئت علمی)</td>
+                                    <td data-key="iranInitiatives">طرح ۲۱ ماده‌ای مجلس، طرح تاپ</td>
+                                    <td data-key="iranImpacts">افزایش قراردادها از ۱۱,۲۱۲ به ۱۱,۵۶۸ در یک سال</td>
+                                </tr>
+                                <tr>
+                                    <td data-key="countryUK"><strong>انگلستان</strong></td>
+                                    <td data-key="ukParticipation">۳۰-۴۰٪ (همکاری در R&D)</td>
+                                    <td data-key="ukInitiatives">IN-PART</td>
+                                    <td data-key="ukImpacts">افزایش نوآوری‌های منطقه‌ای تا ۶.8٪</td>
+                                </tr>
+                                <tr>
+                                    <td data-key="countryUSA"><strong>آمریکا</strong></td>
+                                    <td data-key="usaParticipation">+۵۰٪ (پژوهش‌های صنعتی و استارتاپ‌ها)</td>
+                                    <td data-key="usaInitiatives">ScienceExchange، Halo</td>
+                                    <td data-key="usaImpacts">تجاری‌سازی سریع فناوری</td>
+                                </tr>
+                                 <tr>
+                                    <td data-key="countryFinland"><strong>فنلاند</strong></td>
+                                    <td data-key="finlandParticipation">+۶۰٪ (پژوهشگران فعال در صنعت)</td>
+                                    <td data-key="finlandInitiatives">مشوق‌های دولتی</td>
+                                    <td data-key="finlandImpacts">رشد پایدار صنعتی با ۱۰ برابر پژوهشگر</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <div class="content-card">
+                        <h3 data-key="ctaTitle">فراخوان به اقدام 🚀</h3>
+                        <p data-key="ctaText">دولت و مجلس باید سریع‌تر از FindExpert.ir حمایت کنند تا مثل یک پل، دانشگاه و صنعت را به هم متصل کرده و نوآوری را شتاب بخشد! نظر شما چیست؟</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section" id="reports-section">
+            <div class="container">
+                <h2 class="section-title" data-key="reportsSectionTitle">گزارشات و اسناد پروژه</h2>
+                <div class="reports-grid">
+                    <!-- Report Card: Game Theory -->
+                    <div class="report-card">
+                        <div class="report-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v3h11zm-11 2H9v7h2v-7zm2 0h7v7h-7v-7z"/></svg>
+                        </div>
+                        <div class="report-card-content"><h4 data-key="reportCard1Title">تحلیل نظریه بازی‌ها</h4></div>
+                        <div class="report-card-links">
+                            <a href="https://docs.google.com/document/d/1MLygO8ZIeMVWlMSLjTHSCpTxHtslP_Ub/edit?usp=drivesdk&ouid=109257567653816211530&rtpof=true&sd=true" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg><span data-key="linkDocument">سند</span></a>
+                            <a href="https://www.slidespilot.com/s/p/vVMQYmR6Mj" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/></svg><span data-key="linkSlides">اسلاید</span></a>
+                        </div>
+                    </div>
+                    <!-- Report Card: Business Plan -->
+                    <div class="report-card">
+                        <div class="report-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                        </div>
+                        <div class="report-card-content"><h4 data-key="reportCard2Title">طرح کسب و کار (Business Plan)</h4></div>
+                        <div class="report-card-links">
+                             <a href="https://docs.google.com/document/d/1b64_V15YPLj-emiagHI8Npoj-RSzw8Ap/edit?usp=drivesdk&ouid=109257567653816211530&rtpof=true&sd=true" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg><span data-key="linkDocument">سند</span></a>
+                             <a href="https://www.slidespilot.com/s/p/yg9zQ6y60P" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/></svg><span data-key="linkSlides">اسلاید</span></a>
+                        </div>
+                    </div>
+                    <!-- Report Card: Pitch Deck -->
+                    <div class="report-card">
+                         <div class="report-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6.47V18h16V8.95l-8-5.48-8 3zM2 19h20v2H2z"/></svg>
+                        </div>
+                        <div class="report-card-content"><h4 data-key="reportCard3Title">ارائه سرمایه‌گذار (Pitch Deck)</h4></div>
+                        <div class="report-card-links">
+                             <a href="https://docs.google.com/document/d/1QmY_cFJJRTtyCXEX7_fjIw9CoLv4UO_2/edit?usp=drivesdk&ouid=109257567653816211530&rtpof=true&sd=true" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg><span data-key="linkDocument">سند</span></a>
+                             <a href="https://www.slidespilot.com/s/p/wJ0YOXdynD" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/></svg><span data-key="linkSlides">اسلاید</span></a>
+                        </div>
+                    </div>
+                    <!-- Report Card: Proposal -->
+                    <div class="report-card">
+                        <div class="report-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15 2H9v2h6V2zm-2 4H7v2h6V6zm4 0h-2v2h2V6zM5 6H3v2h2V6zm14 8v-2h-2v2h2zm-4 4v-2h-2v2h2zm-4 0v-2H9v2h2zm-4 0v-2H5v2h2zm-2-4H3v2h2v-2zm8-2h-2v2h2v-2zm-6-2H5v2h2v-2zM9 18H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-12h-2v2h2V6z"/></svg>
+                        </div>
+                        <div class="report-card-content"><h4 data-key="reportCard4Title">پروپوزال پروژه</h4></div>
+                        <div class="report-card-links">
+                             <a href="https://docs.google.com/document/d/1icEObAopwZl5yWI21KD-SlAirqyTeDKt/edit?usp=drivesdk&ouid=109257567653816211530&rtpof=true&sd=true" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg><span data-key="linkDocument">سند</span></a>
+                             <a href="https://www.slidespilot.com/s/p/dRnXO61O94" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/></svg><span data-key="linkSlides">اسلاید</span></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section" id="tools-section">
+            <div class="container">
+                <h2 class="section-title" data-key="toolsSectionTitle">ابزارهای کمکی</h2>
+
+                 <div class="tool-accordion">
+                    <button class="accordion-header" data-key="accordion2Title">یابنده کمک هزینه</button>
+                    <div class="accordion-content">
+                        <div class="main-grid">
+                            <div class="card form-card">
+                                <h2 data-key="tool2FormTitle">Find Environmental Grants</h2>
+                                <p style="margin-bottom: 1.5rem;" data-key="tool2FormSubtitle">Describe your project to find relevant funding opportunities.</p>
+                                <form id="grant-form">
+                                    <div class="form-group"><label for="grantTopic" data-key="grantFormLabelTopic">Project Area / Topic</label><input type="text" id="grantTopic" placeholder="e.g., Renewable Energy Solutions"></div>
+                                    <div class="form-group"><label for="grantDescription" data-key="grantFormLabelDescription">Project Description</label><textarea id="grantDescription" placeholder="Briefly describe your project's goals, methods, and expected impact."></textarea></div>
+                                    <h3 style="margin-top: 2rem; margin-bottom: 1rem; font-weight: 600;" data-key="grantFormLabelFilters">Filters (Optional)</h3>
+                                    <div class="filters">
+                                        <div class="form-group"><label for="grantFundingAmount" data-key="grantFormLabelMinFunding">Min. Funding</label><input type="text" id="grantFundingAmount" placeholder="$50,000"></div>
+                                        <div class="form-group"><label for="grantEligibility" data-key="grantFormLabelEligibility">Eligibility</label><input type="text" id="grantEligibility" placeholder="e.g., Non-profit"></div>
+                                        <div class="form-group"><label for="grantGeographicFocus" data-key="grantFormLabelGeoFocus">Geographic Focus</label><input type="text" id="grantGeographicFocus" placeholder="e.g., North America"></div>
+                                        <div class="form-group"><label for="grantCountry" data-key="grantFormLabelCountry">Country</label><input type="text" id="grantCountry" data-key-placeholder="grantFormPlaceholderCountry" placeholder="e.g., Canada, Global"></div>
+                                    </div>
+                                    <div id="grantFinderErrorDisplay"></div>
+                                    <div class="button-group"><button type="submit" id="findGrantsSubmitBtn"><span data-key="findGrantsButton">Find Grants</span></button><button type="button" id="clearGrantsBtn" data-key="clearButton">Clear</button></div>
+                                </form>
+                            </div>
+                            <div class="card output-card">
+                                <div id="grant-output-wrapper">
+                                    <div id="grant-report-container"></div>
+                                    <div id="grantFinderSourcesWrapper"><h4 data-key="sourcesTitle">Sources:</h4><ul id="grantFinderSources"></ul></div>
+                                    <div class="export-buttons-group" id="grantExportButtons" style="display: none;">
+                                        <button type="button" id="exportPdfBtn"><span data-key="exportPdfButton">Export as PDF</span></button>
+                                        <button type="button" id="exportDocxBtn"><span data-key="exportDocxButton">Export as DOCX</span></button>
+                                        <button type="button" id="exportCsvBtn"><span data-key="exportCsvButton">Export as CSV</span></button>
+                                        <button type="button" id="exportJsonBtn"><span data-key="exportJsonButton">Export as JSON</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-accordion">
+                    <button class="accordion-header" data-key="accordion5Title">Adopt Grant &amp; Summarize</button>
+                    <div class="accordion-content">
+                        <div class="main-grid">
+                            <div class="card form-card">
+                                <h2 data-key="adoptToolFormTitle">Analyze a Grant Opportunity</h2>
+                                <p style="margin-bottom: 1.5rem;" data-key="adoptToolFormSubtitle">An AI assistant will analyze the grant's webpage and related documents to provide a detailed summary.</p>
+                                <form id="adopt-form">
+                                    <div class="form-group">
+                                        <label for="adoptUrl" data-key="adoptFormLabelUrl">Grant URL</label>
+                                        <input type="url" id="adoptUrl" placeholder="https://..." readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="adoptKeywords" data-key="adoptFormLabelKeywords">Topic Keywords</label>
+                                        <input type="text" id="adoptKeywords" placeholder="e.g., Renewable Energy, Community Solar">
+                                    </div>
+                                    <div id="adoptFinderErrorDisplay"></div>
+                                    <div class="button-group">
+                                        <button type="submit" id="analyzeGrantBtn"><span data-key="adoptButton">Analyze Grant</span></button>
+                                        <button type="button" id="clearAdoptBtn" data-key="clearButton">Clear</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="card output-card">
+                                <div id="adopt-output-wrapper">
+                                    <div id="adopt-report-container"></div>
+                                    <div id="adoptFinderSourcesWrapper" style="display: none;">
+                                        <h4 data-key="sourcesTitle">Sources:</h4>
+                                        <ul id="adoptFinderSources"></ul>
+                                    </div>
+                                    <div class="export-buttons-group" id="adoptExportButtons" style="display: none;">
+                                        <button type="button" id="exportAdoptPdfBtn"><span data-key="exportPdfButton">Export as PDF</span></button>
+                                        <button type="button" id="exportAdoptDocxBtn"><span data-key="exportDocxButton">Export as DOCX</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-accordion">
+                    <button class="accordion-header" data-key="accordion3Title">فراخوان یاب</button>
+                    <div class="accordion-content">
+                        <div class="main-grid">
+                            <div class="card form-card">
+                                <h2 data-key="tool3FormTitle">Find Calls for Proposals (RFPs)</h2>
+                                <p style="margin-bottom: 1.5rem;" data-key="tool3FormSubtitle">Describe your expertise to find relevant collaboration opportunities.</p>
+                                <form id="rfp-form">
+                                    <div class="form-group"><label for="rfpTopic" data-key="rfpFormLabelTopic">Expertise / Project Area</label><input type="text" id="rfpTopic" data-key-placeholder="rfpFormPlaceholderTopic"></div>
+                                    <div class="form-group"><label for="rfpDescription" data-key="rfpFormLabelDescription">Project Description</label><textarea id="rfpDescription" data-key-placeholder="rfpFormPlaceholderDescription"></textarea></div>
+                                    <h3 style="margin-top: 2rem; margin-bottom: 1rem; font-weight: 600;" data-key="grantFormLabelFilters">Filters (Optional)</h3>
+                                    <div class="filters">
+                                        <div class="form-group"><label for="rfpOrgType" data-key="rfpFormLabelOrgType">Organization Type</label><input type="text" id="rfpOrgType" data-key-placeholder="rfpFormPlaceholderOrgType"></div>
+                                        <div class="form-group"><label for="rfpEligibility" data-key="grantFormLabelEligibility">Eligibility</label><input type="text" id="rfpEligibility" placeholder="e.g., University, Research Institute"></div>
+                                        <div class="form-group"><label for="rfpGeographicFocus" data-key="grantFormLabelGeoFocus">Geographic Focus</label><input type="text" id="rfpGeographicFocus" placeholder="e.g., Europe"></div>
+                                        <div class="form-group"><label for="rfpCountry" data-key="grantFormLabelCountry">Country</label><input type="text" id="rfpCountry" data-key-placeholder="grantFormPlaceholderCountry" placeholder="e.g., Germany, Global"></div>
+                                    </div>
+                                    <div id="rfpFinderErrorDisplay"></div>
+                                    <div class="button-group"><button type="submit" id="findRfpsSubmitBtn"><span data-key="findRfpsButton">Find RFPs</span></button><button type="button" id="clearRfpsBtn" data-key="clearButton">Clear</button></div>
+                                </form>
+                            </div>
+                            <div class="card output-card">
+                                <div id="rfp-output-wrapper">
+                                    <div id="rfp-report-container"></div>
+                                    <div id="rfpFinderSourcesWrapper"><h4 data-key="sourcesTitle">Sources:</h4><ul id="rfpFinderSources"></ul></div>
+                                    <div class="export-buttons-group" id="rfpExportButtons" style="display: none;">
+                                        <button type="button" id="exportRfpPdfBtn"><span data-key="exportPdfButton">Export as PDF</span></button>
+                                        <button type="button" id="exportRfpDocxBtn"><span data-key="exportDocxButton">Export as DOCX</span></button>
+                                        <button type="button" id="exportRfpCsvBtn"><span data-key="exportCsvButton">Export as CSV</span></button>
+                                        <button type="button" id="exportRfpJsonBtn"><span data-key="exportJsonButton">Export as JSON</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-accordion">
+                    <button class="accordion-header" data-key="accordion6Title">AI Video Generator</button>
+                    <div class="accordion-content">
+                        <div class="main-grid">
+                            <div class="card form-card">
+                                <h2 data-key="videoToolFormTitle">Create a Video from a Scenario</h2>
+                                <p style="margin-bottom: 1.5rem;" data-key="videoToolFormSubtitle">Describe the scenes for your video. The AI will generate a short video (approx. 1 minute) with subtitles based on your description.</p>
+                                <form id="video-form">
+                                    <div class="form-group">
+                                        <label for="videoScenario" data-key="videoFormLabelScenario">Video Scenario</label>
+                                        <textarea id="videoScenario" data-key-placeholder="videoFormPlaceholderScenario" rows="10"></textarea>
+                                    </div>
+                                    <div id="videoFinderErrorDisplay"></div>
+                                    <div class="button-group">
+                                        <button type="submit" id="generateVideoBtn"><span data-key="generateVideoButton">Generate Video</span></button>
+                                        <button type="button" id="clearVideoBtn" data-key="clearButton">Clear</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="card output-card">
+                                <div id="video-output-wrapper">
+                                    <div id="video-loading-status" style="display: none; text-align: center; padding: 2rem;">
+                                         <div class="spinner-large"></div>
+                                         <p id="video-loading-message" style="margin-top: 1rem; color: var(--text-color);"></p>
+                                    </div>
+                                    <div id="video-report-container">
+                                    </div>
+                                    <a id="downloadVideoBtn" style="display: none;" download="generated-video.mp4">
+                                        <span data-key="downloadVideoButton">Download Video</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-accordion">
+                    <button class="accordion-header" data-key="accordion1Title">دستیار پروپوزال کمک هزینه</button>
+                    <div class="accordion-content">
+                        <div class="main-grid">
+                            <div class="card form-card">
+                                <h2 data-key="tool1FormTitle">Draft a New Grant Proposal</h2>
+                                <form id="doc-form">
+                                    <div class="form-group"><label for="documentType" data-key="formLabelDocType">Proposal Section to Draft</label><select id="documentType"><option value="full_proposal" data-key="docTypeOption1">Full Proposal Draft</option><option value="summary" data-key="docTypeOption2">Project Summary / Abstract</option><option value="statement_of_need" data-key="docTypeOption3">Statement of Need</option><option value="goals" data-key="docTypeOption4">Project Goals & Objectives</option><option value="methodology" data-key="docTypeOption5">Methodology / Project Plan</option><option value="budget" data-key="docTypeOption6">Budget Narrative</option></select></div>
+                                    <div class="form-group"><label for="topic" data-key="formLabelTopic">Project Title</label><input type="text" id="topic" placeholder="e.g., Community Solar Power Initiative" value="Community Solar Power Initiative"></div>
+                                    <div class="form-group"><label for="customInstructions" data-key="formLabelDescription">Project Overview</label><textarea id="customInstructions" placeholder="Describe the key objectives, scope, and any specific points to include."></textarea></div>
+                                    <div class="form-group"><label for="dueDate" data-key="formLabelDueDate">Due Date (Optional)</label><input type="date" id="dueDate"></div>
+                                    <div class="form-group"><label for="priorityLevel" data-key="formLabelPriority">Priority</label><select id="priorityLevel"><option value="normal" data-key="priorityOption1">Normal</option><option value="high" data-key="priorityOption2">High</option><option value="urgent" data-key="priorityOption3">Urgent</option></select></div>
+                                    <div id="errorDisplay"></div>
+                                    <div class="button-group"><button type="submit" id="generate-btn"><span data-key="generateButton">Draft Section</span></button><button type="button" id="clear-btn" data-key="clearButton">Clear</button></div>
+                                </form>
+                            </div>
+                            <div class="card output-card">
+                                <div id="generated-report-wrapper" style="position: relative;"><button id="copy-btn" data-key="copyButton">Copy</button><div id="generated-report"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-accordion">
+                    <button class="accordion-header" data-key="accordion4Title">Can't Find It? Ask Our AI</button>
+                    <div class="accordion-content">
+                        <div class="main-grid">
+                            <div class="card form-card">
+                                <h2 data-key="tool4FormTitle">Custom AI Search</h2>
+                                <p style="margin-bottom: 1.5rem;" data-key="tool4FormSubtitle">If you can't find the specific tool you need, describe your request here, and our AI assistant will search for an answer.</p>
+                                <form id="custom-form">
+                                    <div class="form-group">
+                                        <label for="customTopic" data-key="customFormLabelTopic">Your Question / Request</label>
+                                        <textarea id="customTopic" data-key-placeholder="customFormPlaceholderTopic"></textarea>
+                                    </div>
+                                    <div id="customFinderErrorDisplay"></div>
+                                    <div class="button-group">
+                                        <button type="submit" id="findCustomSubmitBtn"><span data-key="findCustomButton">Get Answer</span></button>
+                                        <button type="button" id="clearCustomBtn" data-key="clearButton">Clear</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="card output-card">
+                                <div id="custom-output-wrapper">
+                                    <div id="custom-report-container"></div>
+                                    <div id="customFinderSourcesWrapper"><h4 data-key="sourcesTitle">Sources:</h4><ul id="customFinderSources"></ul></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <p data-key="footerText">&copy; ۲۰۲۵ FindExpert.ir - کلیه حقوق محفوظ است.</p>
+        </div>
+    </footer>
+    <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
