@@ -1,6 +1,22 @@
+
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { jsPDF } from "jspdf";
 import * as docx from "docx";
+
+// --- Type Declarations ---
+// FIX: Replaced inline type for `window.aistudio` with a named `AIStudio` interface
+// to resolve a TypeScript declaration conflict, as indicated by the error message.
+declare global {
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+  interface Window {
+    // FIX: Add readonly modifier to resolve TypeScript declaration conflict.
+    readonly aistudio: AIStudio;
+  }
+}
 
 // --- Translation Data ---
 const translations = {
@@ -341,7 +357,7 @@ const translations = {
     videoLoading4: "در حال نهایی‌سازی ویدیو، تقریباً تمام شد!",
   }
 };
-let currentLang = 'fa';
+let currentLang: 'en' | 'fa' = 'fa';
 
 // --- DOM Element Selectors ---
 
@@ -435,7 +451,6 @@ const downloadVideoBtn = document.getElementById('downloadVideoBtn') as HTMLAnch
 
 
 const LOCAL_STORAGE_KEY = 'ecoAiTaskDetails';
-let ai;
 let currentGrantText = '';
 let currentRfpText = '';
 let currentAdoptedGrantText = '';
@@ -478,6 +493,611 @@ const rfpSchema = {
     }
 };
 
+const getPlaceholderHTML = (key: string) => `<div class="placeholder-text">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+    <span>${translations[currentLang][key]}</span>
+</div>`;
 
-const getPlaceholderHTML = (key) => `<div class="placeholder-text">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 1
+// --- UI & Utility Functions ---
+
+function setLoading(button: HTMLButtonElement, isLoading: boolean, key: string) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = `<div class="spinner"></div>`;
+    } else {
+        button.disabled = false;
+        button.innerHTML = `<span data-key="${key}">${translations[currentLang][key] || ''}</span>`;
+    }
+}
+
+function showError(displayElement: HTMLElement, errorKey: string, ...args: any[]) {
+    const messageFn = translations[currentLang][errorKey];
+    displayElement.textContent = typeof messageFn === 'function' ? messageFn(...args) : messageFn;
+    displayElement.style.display = 'block';
+}
+
+function hideError(displayElement: HTMLElement) {
+    displayElement.textContent = '';
+    displayElement.style.display = 'none';
+}
+
+function updateUIForLanguage() {
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+    document.body.className = `lang-${currentLang}`;
+
+    document.querySelectorAll('[data-key]').forEach(element => {
+        const key = element.getAttribute('data-key');
+        if (key && translations[currentLang][key]) {
+            element.innerHTML = translations[currentLang][key];
+        }
+    });
+
+    document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-key-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-key-placeholder');
+        if (key && translations[currentLang][key]) {
+            element.placeholder = translations[currentLang][key];
+        }
+    });
+    
+    // Reset placeholders for output containers if they are empty
+    if (reportContainer.querySelector('.placeholder-text') || reportContainer.textContent === '') {
+        reportContainer.innerHTML = getPlaceholderHTML('placeholderGenerator');
+    }
+    if (grantReportContainer.querySelector('.placeholder-text') || grantReportContainer.textContent === '') {
+        grantReportContainer.innerHTML = getPlaceholderHTML('placeholderGrant');
+    }
+    if (rfpReportContainer.querySelector('.placeholder-text') || rfpReportContainer.textContent === '') {
+        rfpReportContainer.innerHTML = getPlaceholderHTML('placeholderRfp');
+    }
+    if (customReportContainer.querySelector('.placeholder-text') || customReportContainer.textContent === '') {
+        customReportContainer.innerHTML = getPlaceholderHTML('placeholderCustom');
+    }
+    if (adoptReportContainer.querySelector('.placeholder-text') || adoptReportContainer.textContent === '') {
+        adoptReportContainer.innerHTML = getPlaceholderHTML('placeholderAdopt');
+    }
+    if (videoReportContainer.querySelector('.placeholder-text') || videoReportContainer.innerHTML === '') {
+        videoReportContainer.innerHTML = getPlaceholderHTML('placeholderVideo');
+    }
+
+    document.querySelectorAll('.lang-switcher button').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLang);
+    });
+}
+
+function handleApiError(e: any, errorDisplayElement: HTMLElement, serviceErrorKey: string) {
+    console.error(e);
+    let message = e.message || '';
+    if (message.includes('API key not valid')) {
+        showError(errorDisplayElement, 'errorApiKey');
+    } else if (message.includes('429')) {
+        showError(errorDisplayElement, 'errorQuota');
+    } else if (message.includes('[VertexAI.FinishReason] RECITATION')) {
+        showError(errorDisplayElement, 'errorRecitation');
+    } else if (message.includes('[VertexAI.FinishReason] SAFETY')) {
+        showError(errorDisplayElement, 'errorSafety');
+    } else if (message.includes('[VertexAI.FinishReason]')) {
+        const reason = message.split(']')[1]?.trim() || 'unknown';
+        showError(errorDisplayElement, 'errorStopped', reason);
+    } else if (message.includes('network error')) {
+        showError(errorDisplayElement, 'errorNetwork');
+    } else {
+        showError(errorDisplayElement, serviceErrorKey);
+    }
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function arrayToCsv(data: any[]): string {
+    if (data.length === 0) return "";
+    const headers = Object.keys(data[0]);
+    const csvRows = [headers.join(',')];
+    for (const row of data) {
+        const values = headers.map(header => {
+            const val = row[header] === null || row[header] === undefined ? '' : row[header];
+            const escaped = ('' + val).replace(/"/g, '""');
+            return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+    }
+    return csvRows.join('\n');
+}
+
+
+// --- Tool Handlers ---
+
+// Grant Proposal Assistant
+async function handleGenerate(e: Event) {
+    e.preventDefault();
+    hideError(errorDisplay);
+    if (!topicInput.value || !customInstructionsInput.value) {
+        showError(errorDisplay, 'errorTopicDesc');
+        return;
+    }
+    
+    setLoading(generateBtn, true, 'generateButton');
+    reportContainer.innerHTML = `<div class="spinner-large"></div>`;
+    copyBtn.style.display = 'none';
+
+    const documentType = documentTypeInput.options[documentTypeInput.selectedIndex].text;
+    const prompt = `Draft a "${documentType}" for a grant proposal.
+        Project Title: ${topicInput.value}
+        Overview: ${customInstructionsInput.value}
+        ${dueDateInput.value ? `Due Date: ${dueDateInput.value}` : ''}
+        ${priorityLevelInput.value ? `Priority: ${priorityLevelInput.value}` : ''}
+        The response should be well-structured, professional, and ready to be used in a formal document. Use markdown for formatting.`;
+
+    try {
+        if (!process.env.API_KEY) throw new Error('API key not valid.');
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        reportContainer.textContent = response.text;
+        copyBtn.style.display = 'block';
+        copyBtn.textContent = translations[currentLang].copyButton;
+    } catch (e) {
+        handleApiError(e, errorDisplay, 'errorServiceUnavailable');
+        reportContainer.innerHTML = getPlaceholderHTML('placeholderGenerator');
+    } finally {
+        setLoading(generateBtn, false, 'generateButton');
+    }
+}
+
+// Grant Finder
+function renderGrantResults(data: any[]) {
+    currentGrantData = data;
+    if (!data || data.length === 0) {
+        grantReportContainer.innerHTML = getPlaceholderHTML('placeholderGrant');
+        grantExportButtons.style.display = 'none';
+        return;
+    }
+    grantReportContainer.innerHTML = data.map(grant => `
+        <div class="result-card">
+            <h3>${grant.title || 'N/A'}</h3>
+            <p class="organization">${grant.organization || 'N/A'}</p>
+            <p class="summary">${grant.summary || 'N/A'}</p>
+            <div class="details-grid">
+                <div class="detail-item"><span class="detail-label">Deadline:</span> <span class="detail-value deadline">${grant.deadline || 'N/A'}</span></div>
+                <div class="detail-item"><span class="detail-label">Funding:</span> <span class="detail-value amount">${grant.fundingAmount || 'N/A'}</span></div>
+                <div class="detail-item"><span class="detail-label">Eligibility:</span> <span class="detail-value">${grant.eligibility || 'N/A'}</span></div>
+            </div>
+            ${grant.link ? `<a href="${grant.link}" target="_blank" class="result-link">View Grant</a>` : ''}
+            ${grant.link ? `<button class="adopt-button" data-url="${grant.link}" data-title="${grant.title || ''}" data-key="adoptButtonOnCard">${translations[currentLang].adoptButtonOnCard}</button>` : ''}
+        </div>`).join('');
+    currentGrantText = grantReportContainer.innerText;
+    grantExportButtons.style.display = 'grid';
+    document.querySelectorAll('.adopt-button').forEach(button => button.addEventListener('click', handleAdoptButtonClick as EventListener));
+}
+
+async function handleFindGrants(e: Event) {
+    e.preventDefault();
+    hideError(grantFinderErrorDisplay);
+    if (!grantTopicInput.value && !grantDescriptionInput.value) {
+        showError(grantFinderErrorDisplay, 'errorGrantTopicDesc');
+        return;
+    }
+
+    setLoading(findGrantsSubmitBtn, true, 'findGrantsButton');
+    grantReportContainer.innerHTML = `<div class="spinner-large"></div>`;
+    grantExportButtons.style.display = 'none';
+    grantFinderSourcesWrapper.style.display = 'none';
+    
+    let prompt = `Find environmental grant opportunities based on the following criteria. Respond in JSON format according to the provided schema.
+    Project Topic/Area: ${grantTopicInput.value}
+    Project Description: ${grantDescriptionInput.value}`;
+    if (grantFundingAmountInput.value) prompt += `\nMinimum Funding: ${grantFundingAmountInput.value}`;
+    if (grantEligibilityInput.value) prompt += `\nEligibility Requirements: ${grantEligibilityInput.value}`;
+    if (grantGeographicFocusInput.value) prompt += `\nGeographic Focus: ${grantGeographicFocusInput.value}`;
+    if (grantCountryInput.value) prompt += `\nCountry: ${grantCountryInput.value}`;
+
+    try {
+        if (!process.env.API_KEY) throw new Error('API key not valid.');
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+            config: { responseMimeType: 'application/json', responseSchema: grantSchema },
+        });
+        renderGrantResults(JSON.parse(response.text.trim()));
+    } catch (e) {
+        handleApiError(e, grantFinderErrorDisplay, 'errorGrantServiceUnavailable');
+        grantReportContainer.innerHTML = getPlaceholderHTML('placeholderGrant');
+    } finally {
+        setLoading(findGrantsSubmitBtn, false, 'findGrantsButton');
+    }
+}
+
+// RFP Finder
+function renderRfpResults(data: any[]) {
+    currentRfpData = data;
+    if (!data || data.length === 0) {
+        rfpReportContainer.innerHTML = getPlaceholderHTML('placeholderRfp');
+        rfpExportButtons.style.display = 'none';
+        return;
+    }
+    rfpReportContainer.innerHTML = data.map(rfp => `
+        <div class="result-card">
+            <h3>${rfp.title || 'N/A'}</h3>
+            <p class="organization">${rfp.issuingOrganization || 'N/A'}</p>
+            <p class="summary">${rfp.summary || 'N/A'}</p>
+            <div class="details-grid">
+                 <div class="detail-item"><span class="detail-label">Deadline:</span> <span class="detail-value deadline">${rfp.deadline || 'N/A'}</span></div>
+                 <div class="detail-item"><span class="detail-label">Eligibility:</span> <span class="detail-value">${rfp.eligibility || 'N/A'}</span></div>
+            </div>
+            ${rfp.link ? `<a href="${rfp.link}" target="_blank" class="result-link">View RFP</a>` : ''}
+        </div>`).join('');
+    currentRfpText = rfpReportContainer.innerText;
+    rfpExportButtons.style.display = 'grid';
+}
+
+async function handleFindRfps(e: Event) {
+    e.preventDefault();
+    hideError(rfpFinderErrorDisplay);
+    if (!rfpTopicInput.value && !rfpDescriptionInput.value) {
+        showError(rfpFinderErrorDisplay, 'errorRfpTopicDesc');
+        return;
+    }
+
+    setLoading(findRfpsSubmitBtn, true, 'findRfpsButton');
+    rfpReportContainer.innerHTML = `<div class="spinner-large"></div>`;
+    rfpExportButtons.style.display = 'none';
+    rfpFinderSourcesWrapper.style.display = 'none';
+
+    let prompt = `Find Requests for Proposals (RFPs) based on the following criteria. Respond in JSON format according to the provided schema.
+    Expertise/Area: ${rfpTopicInput.value}
+    Description: ${rfpDescriptionInput.value}`;
+    if (rfpOrgTypeInput.value) prompt += `\nOrganization Type: ${rfpOrgTypeInput.value}`;
+    if (rfpEligibilityInput.value) prompt += `\nEligibility: ${rfpEligibilityInput.value}`;
+    if (rfpGeographicFocusInput.value) prompt += `\nGeographic Focus: ${rfpGeographicFocusInput.value}`;
+    if (rfpCountryInput.value) prompt += `\nCountry: ${rfpCountryInput.value}`;
+
+    try {
+        if (!process.env.API_KEY) throw new Error('API key not valid.');
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+            config: { responseMimeType: 'application/json', responseSchema: rfpSchema },
+        });
+        renderRfpResults(JSON.parse(response.text.trim()));
+    } catch (e) {
+        handleApiError(e, rfpFinderErrorDisplay, 'errorRfpServiceUnavailable');
+        rfpReportContainer.innerHTML = getPlaceholderHTML('placeholderRfp');
+    } finally {
+        setLoading(findRfpsSubmitBtn, false, 'findRfpsButton');
+    }
+}
+
+
+// Adopt Grant
+function handleAdoptButtonClick(event: MouseEvent) {
+    const button = event.target as HTMLButtonElement;
+    const url = button.dataset.url;
+    const title = button.dataset.title;
+    if (url) {
+        adoptUrlInput.value = url;
+        adoptKeywordsInput.value = title || '';
+        const adoptAccordion = adoptForm.closest('.tool-accordion');
+        if (adoptAccordion && !adoptAccordion.classList.contains('active')) {
+            (adoptAccordion.querySelector('.accordion-header') as HTMLElement)?.click();
+        }
+        adoptUrlInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+async function handleAnalyzeGrant(e: Event) {
+    e.preventDefault();
+    hideError(adoptFinderErrorDisplay);
+    if (!adoptUrlInput.value) {
+        showError(adoptFinderErrorDisplay, 'errorAdoptUrl');
+        return;
+    }
+
+    setLoading(analyzeGrantBtn, true, 'adoptButton');
+    adoptReportContainer.innerHTML = `<div class="spinner-large"></div>`;
+    adoptExportButtons.style.display = 'none';
+    adoptFinderSourcesWrapper.style.display = 'none';
+
+    const prompt = `Analyze the grant opportunity from the URL: ${adoptUrlInput.value}.
+    Focus on relevance to these keywords: "${adoptKeywordsInput.value}".
+    Provide a detailed summary covering: Grant Overview, Funding Details, Key Dates, Eligibility Criteria, Application Requirements, and Alignment Analysis. Use markdown.`;
+
+    try {
+        if (!process.env.API_KEY) throw new Error('API key not valid.');
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: { tools: [{ googleSearch: {} }] }
+        });
+
+        currentAdoptedGrantText = response.text;
+        adoptReportContainer.textContent = currentAdoptedGrantText;
+        adoptExportButtons.style.display = 'grid';
+
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks?.length) {
+            adoptFinderSources.innerHTML = chunks.filter(c => c.web?.uri).map(c => 
+                `<li><a href="${c.web.uri}" target="_blank">${c.web.title || c.web.uri}</a></li>`
+            ).join('');
+            adoptFinderSourcesWrapper.style.display = 'block';
+        }
+    } catch (e) {
+        handleApiError(e, adoptFinderErrorDisplay, 'errorAdoptServiceUnavailable');
+        adoptReportContainer.innerHTML = getPlaceholderHTML('placeholderAdopt');
+    } finally {
+        setLoading(analyzeGrantBtn, false, 'adoptButton');
+    }
+}
+
+// Custom AI Search
+async function handleCustomSearch(e: Event) {
+    e.preventDefault();
+    hideError(customFinderErrorDisplay);
+    if (!customTopicInput.value) {
+        showError(customFinderErrorDisplay, 'errorCustomTopicDesc');
+        return;
+    }
+
+    setLoading(findCustomSubmitBtn, true, 'findCustomButton');
+    customReportContainer.innerHTML = `<div class="spinner-large"></div>`;
+    customFinderSourcesWrapper.style.display = 'none';
+
+    try {
+        if (!process.env.API_KEY) throw new Error('API key not valid.');
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: customTopicInput.value,
+            config: { tools: [{ googleSearch: {} }] }
+        });
+
+        currentCustomText = response.text;
+        customReportContainer.textContent = currentCustomText;
+
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks?.length) {
+            customFinderSources.innerHTML = chunks.filter(c => c.web?.uri).map(c =>
+                `<li><a href="${c.web.uri}" target="_blank">${c.web.title || c.web.uri}</a></li>`
+            ).join('');
+            customFinderSourcesWrapper.style.display = 'block';
+        }
+    } catch (e) {
+        handleApiError(e, customFinderErrorDisplay, 'errorCustomServiceUnavailable');
+        customReportContainer.innerHTML = getPlaceholderHTML('placeholderCustom');
+    } finally {
+        setLoading(findCustomSubmitBtn, false, 'findCustomButton');
+    }
+}
+
+// AI Video Generator
+async function handleGenerateVideo(e: Event) {
+    e.preventDefault();
+    hideError(videoFinderErrorDisplay);
+    if (!videoScenarioInput.value) {
+        showError(videoFinderErrorDisplay, 'errorVideoScenario');
+        return;
+    }
+
+    setLoading(generateVideoBtn, true, 'generateVideoButton');
+    videoReportContainer.innerHTML = '';
+    videoLoadingStatus.style.display = 'block';
+    downloadVideoBtn.style.display = 'none';
+    currentVideoUrl = null;
+
+    try {
+        if (!window.aistudio || !(await window.aistudio.hasSelectedApiKey())) {
+            await window.aistudio.openSelectKey();
+        }
+        // Re-init with selected key
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); 
+
+        videoLoadingMessage.textContent = translations[currentLang].videoLoading1;
+        let operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: videoScenarioInput.value,
+            config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
+        });
+        
+        videoLoadingMessage.textContent = translations[currentLang].videoLoading2;
+        while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            operation = await ai.operations.getVideosOperation({ operation });
+            videoLoadingMessage.textContent = translations[currentLang].videoLoading3;
+        }
+
+        videoLoadingMessage.textContent = translations[currentLang].videoLoading4;
+        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+
+        if (downloadLink) {
+            const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+            const videoBlob = await videoResponse.blob();
+            currentVideoUrl = URL.createObjectURL(videoBlob);
+            
+            const videoElement = document.createElement('video');
+            videoElement.src = currentVideoUrl;
+            videoElement.controls = true;
+            videoElement.style.width = '100%';
+            videoReportContainer.innerHTML = '';
+            videoReportContainer.appendChild(videoElement);
+            
+            downloadVideoBtn.href = currentVideoUrl;
+            downloadVideoBtn.style.display = 'flex';
+        } else {
+            throw new Error("Video generation did not return a valid link.");
+        }
+
+    } catch (e) {
+        if (e.message?.includes('Requested entity was not found')) {
+            await window.aistudio.openSelectKey();
+            showError(videoFinderErrorDisplay, 'errorApiKey');
+        } else {
+            handleApiError(e, videoFinderErrorDisplay, 'errorVideoServiceUnavailable');
+        }
+        videoReportContainer.innerHTML = getPlaceholderHTML('placeholderVideo');
+    } finally {
+        setLoading(generateVideoBtn, false, 'generateVideoButton');
+        videoLoadingStatus.style.display = 'none';
+    }
+}
+
+
+// --- Initialization ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Accordion Logic
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const accordion = header.parentElement as HTMLElement;
+            const content = header.nextElementSibling as HTMLElement;
+            
+            if (accordion.classList.contains('active')) {
+                accordion.classList.remove('active');
+                content.style.maxHeight = '0';
+            } else {
+                document.querySelectorAll('.tool-accordion.active').forEach(actAcc => {
+                    actAcc.classList.remove('active');
+                    (actAcc.querySelector('.accordion-content') as HTMLElement).style.maxHeight = '0';
+                });
+                accordion.classList.add('active');
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    });
+
+    // Language Switcher
+    document.querySelectorAll('.lang-switcher button').forEach(button => {
+        button.addEventListener('click', () => {
+            currentLang = button.getAttribute('data-lang') as 'en' | 'fa';
+            updateUIForLanguage();
+        });
+    });
+
+    // --- Event Listeners ---
+    form.addEventListener('submit', handleGenerate);
+    grantForm.addEventListener('submit', handleFindGrants);
+    rfpForm.addEventListener('submit', handleFindRfps);
+    customForm.addEventListener('submit', handleCustomSearch);
+    adoptForm.addEventListener('submit', handleAnalyzeGrant);
+    videoForm.addEventListener('submit', handleGenerateVideo);
+
+    // Clear Buttons
+    clearBtn.addEventListener('click', () => {
+        form.reset();
+        reportContainer.innerHTML = getPlaceholderHTML('placeholderGenerator');
+        hideError(errorDisplay);
+        copyBtn.style.display = 'none';
+    });
+    clearGrantsBtn.addEventListener('click', () => {
+        grantForm.reset();
+        grantReportContainer.innerHTML = getPlaceholderHTML('placeholderGrant');
+        grantExportButtons.style.display = 'none';
+        hideError(grantFinderErrorDisplay);
+        grantFinderSourcesWrapper.style.display = 'none';
+        currentGrantData = [];
+    });
+    clearRfpsBtn.addEventListener('click', () => {
+        rfpForm.reset();
+        rfpReportContainer.innerHTML = getPlaceholderHTML('placeholderRfp');
+        rfpExportButtons.style.display = 'none';
+        hideError(rfpFinderErrorDisplay);
+        rfpFinderSourcesWrapper.style.display = 'none';
+        currentRfpData = [];
+    });
+     clearCustomBtn.addEventListener('click', () => {
+        customForm.reset();
+        customReportContainer.innerHTML = getPlaceholderHTML('placeholderCustom');
+        hideError(customFinderErrorDisplay);
+        customFinderSourcesWrapper.style.display = 'none';
+    });
+    clearAdoptBtn.addEventListener('click', () => {
+        adoptForm.reset();
+        adoptReportContainer.innerHTML = getPlaceholderHTML('placeholderAdopt');
+        adoptExportButtons.style.display = 'none';
+        hideError(adoptFinderErrorDisplay);
+        adoptFinderSourcesWrapper.style.display = 'none';
+    });
+    clearVideoBtn.addEventListener('click', () => {
+        videoForm.reset();
+        videoReportContainer.innerHTML = getPlaceholderHTML('placeholderVideo');
+        hideError(videoFinderErrorDisplay);
+        downloadVideoBtn.style.display = 'none';
+        currentVideoUrl = null;
+    });
+
+    // Copy Button
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(reportContainer.textContent || '');
+        copyBtn.textContent = translations[currentLang].copiedButton;
+        setTimeout(() => { copyBtn.textContent = translations[currentLang].copyButton; }, 2000);
+    });
+    
+    // --- Export Listeners ---
+    // Grant Exports
+    exportPdfBtn.addEventListener('click', () => {
+        const doc = new jsPDF();
+        doc.text("Grant Opportunities", 10, 10);
+        doc.text(currentGrantText, 10, 20);
+        doc.save("grants.pdf");
+    });
+    exportDocxBtn.addEventListener('click', async () => {
+        const paragraphs = currentGrantData.map(g => new docx.Paragraph({ children: [ new docx.TextRun({ text: g.title, bold: true, size: 28 }), new docx.TextRun({ text: `Organization: ${g.organization}`, break: 1 }), new docx.TextRun({ text: `Summary: ${g.summary}`, break: 1 })], spacing: { after: 200 } }));
+        const doc = new docx.Document({ sections: [{ children: paragraphs }] });
+        downloadBlob(await docx.Packer.toBlob(doc), "grants.docx");
+    });
+    exportCsvBtn.addEventListener('click', () => downloadBlob(new Blob([arrayToCsv(currentGrantData)], { type: 'text/csv' }), 'grants.csv'));
+    exportJsonBtn.addEventListener('click', () => downloadBlob(new Blob([JSON.stringify(currentGrantData, null, 2)], { type: 'application/json' }), 'grants.json'));
+    
+    // RFP Exports
+    exportRfpPdfBtn.addEventListener('click', () => {
+        const doc = new jsPDF();
+        doc.text("RFP Opportunities", 10, 10);
+        doc.text(currentRfpText, 10, 20);
+        doc.save("rfps.pdf");
+    });
+    exportRfpDocxBtn.addEventListener('click', async () => {
+        const paragraphs = currentRfpData.map(r => new docx.Paragraph({ children: [ new docx.TextRun({ text: r.title, bold: true, size: 28 }), new docx.TextRun({ text: `Organization: ${r.issuingOrganization}`, break: 1 }), new docx.TextRun({ text: `Summary: ${r.summary}`, break: 1 })], spacing: { after: 200 } }));
+        const doc = new docx.Document({ sections: [{ children: paragraphs }] });
+        downloadBlob(await docx.Packer.toBlob(doc), "rfps.docx");
+    });
+    exportRfpCsvBtn.addEventListener('click', () => downloadBlob(new Blob([arrayToCsv(currentRfpData)], { type: 'text/csv' }), 'rfps.csv'));
+    exportRfpJsonBtn.addEventListener('click', () => downloadBlob(new Blob([JSON.stringify(currentRfpData, null, 2)], { type: 'application/json' }), 'rfps.json'));
+
+    // Adopted Grant Exports
+    exportAdoptPdfBtn.addEventListener('click', () => {
+        const doc = new jsPDF();
+        doc.text("Grant Analysis", 10, 10);
+        doc.text(currentAdoptedGrantText, 10, 20, { maxWidth: 180 });
+        doc.save("grant-analysis.pdf");
+    });
+    exportAdoptDocxBtn.addEventListener('click', async () => {
+        const doc = new docx.Document({ sections: [{ children: [new docx.Paragraph(currentAdoptedGrantText)] }] });
+        downloadBlob(await docx.Packer.toBlob(doc), "grant-analysis.docx");
+    });
+    
+    // Hero CTA button smooth scroll
+    const ctaButton = document.querySelector('.hero .cta-button');
+    if (ctaButton) {
+        ctaButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = (e.currentTarget as HTMLAnchorElement).getAttribute('href')?.substring(1);
+            if (targetId) {
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        });
+    }
+
+    // --- Initial Setup ---
+    updateUIForLanguage();
+});
