@@ -1,0 +1,16 @@
+# Cloudflare Pages — static FindExpert.ir site (Vite dist)
+# Deploy: npm run build && npx wrangler pages deploy dist --project-name findexpert-ecoai
+# Bots stay on Node (webhook + PUBLIC_URL) or a separate Worker; Pages is HTML/JS only.
+
+name = "findexpert-ecoai"
+compatibility_date = "2026-08-01"
+pages_build_output_dir = "dist"
+
+[vars]
+SITE_URL = "https://findexpert.ir"
+
+# After: npx wrangler d1 create findexpert-community
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "findexpert-community"
+# database_id = "YOUR_D1_ID"

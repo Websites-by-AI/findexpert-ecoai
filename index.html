@@ -8,15 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script type="importmap">
-    {
-      "imports": {
-        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.17.0",
-        "jspdf": "https://esm.sh/jspdf@2.5.1",
-        "docx": "https://esm.sh/docx@8.5.0"
-      }
-    }
-    </script>
     <style>
         :root {
             --primary-color: #005f73;
@@ -89,10 +80,40 @@
             width: 40px;
             height: 40px;
         }
+        .api-key-box {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+        }
+        .api-key-box input {
+            width: 180px;
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        .api-key-box button {
+            padding: 0.4rem 0.8rem;
+            background: var(--secondary-color);
+            color: #fff;
+        }
+        .api-key-box button:hover {
+            background: var(--primary-color);
+        }
+        .api-key-status {
+            font-size: 0.75rem;
+            color: #6c757d;
+            max-width: 140px;
+        }
+        .api-key-status.ok { color: #198754; }
+        .api-key-status.missing { color: #c0392b; }
         .lang-switcher {
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
         .lang-switcher button {
             background: none;
@@ -302,6 +323,10 @@
             transition: max-height 0.35s ease-out;
             padding: 0 1.5rem;
         }
+        .tool-accordion.active .accordion-content {
+            max-height: 8000px;
+            overflow: visible;
+        }
         .accordion-content .main-grid {
             padding: 2rem 0;
             display: grid;
@@ -344,12 +369,12 @@
             transition: background-color 0.2s, transform 0.2s; font-family: inherit; gap: 0.5rem;
         }
         button:disabled { opacity: 0.6; cursor: not-allowed; }
-        #generate-btn, #findGrantsSubmitBtn, #findRfpsSubmitBtn, #findCustomSubmitBtn, #analyzeGrantBtn, #generateVideoBtn { background-color: var(--primary-color); color: white; flex-grow: 1; }
-        #generate-btn:hover:not(:disabled), #findGrantsSubmitBtn:hover:not(:disabled), #findRfpsSubmitBtn:hover:not(:disabled), #findCustomSubmitBtn:hover:not(:disabled), #analyzeGrantBtn:hover:not(:disabled), #generateVideoBtn:hover:not(:disabled) { background-color: #003f5c; transform: translateY(-2px); }
-        #clear-btn, #clearGrantsBtn, #clearRfpsBtn, #clearCustomBtn, #clearAdoptBtn, #clearVideoBtn { background-color: #ecf0f1; color: var(--text-color); }
-        #clear-btn:hover:not(:disabled), #clearGrantsBtn:hover:not(:disabled), #clearRfpsBtn:hover:not(:disabled), #clearCustomBtn:hover:not(:disabled), #clearAdoptBtn:hover:not(:disabled), #clearVideoBtn:hover:not(:disabled) { background-color: #bdc3c7; }
+        #generate-btn, #findGrantsSubmitBtn, #findRfpsSubmitBtn, #findCustomSubmitBtn, #analyzeGrantBtn, #generateVideoBtn, #patentSubmitBtn, #priorArtBtn, #academicSubmitBtn, #bizSubmitBtn { background-color: var(--primary-color); color: white; flex-grow: 1; }
+        #generate-btn:hover:not(:disabled), #findGrantsSubmitBtn:hover:not(:disabled), #findRfpsSubmitBtn:hover:not(:disabled), #findCustomSubmitBtn:hover:not(:disabled), #analyzeGrantBtn:hover:not(:disabled), #generateVideoBtn:hover:not(:disabled), #patentSubmitBtn:hover:not(:disabled), #priorArtBtn:hover:not(:disabled), #academicSubmitBtn:hover:not(:disabled), #bizSubmitBtn:hover:not(:disabled) { background-color: #003f5c; transform: translateY(-2px); }
+        #clear-btn, #clearGrantsBtn, #clearRfpsBtn, #clearCustomBtn, #clearAdoptBtn, #clearVideoBtn, #clearPatentBtn, #clearAcademicBtn, #clearBizBtn { background-color: #ecf0f1; color: var(--text-color); }
+        #clear-btn:hover:not(:disabled), #clearGrantsBtn:hover:not(:disabled), #clearRfpsBtn:hover:not(:disabled), #clearCustomBtn:hover:not(:disabled), #clearAdoptBtn:hover:not(:disabled), #clearVideoBtn:hover:not(:disabled), #clearPatentBtn:hover:not(:disabled), #clearAcademicBtn:hover:not(:disabled), #clearBizBtn:hover:not(:disabled) { background-color: #bdc3c7; }
         .output-card { position: sticky; top: 100px; }
-        #generated-report, #grant-report-container, #rfp-report-container, #custom-report-container, #adopt-report-container, #video-report-container { 
+        #generated-report, #grant-report-container, #rfp-report-container, #custom-report-container, #adopt-report-container, #video-report-container, #patent-report-container, #academic-report-container, #biz-report-container { 
             min-height: 300px; padding: 1.5rem; border: 1px dashed var(--border-color); border-radius: 8px; 
             white-space: pre-wrap; word-wrap: break-word; font-size: 0.95rem; line-height: 1.7; 
             text-align: var(--text-align-start); direction: var(--direction);
@@ -362,7 +387,7 @@
         body.lang-en #copy-btn { right: 1rem; left: auto; }
         .spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #errorDisplay, #grantFinderErrorDisplay, #rfpFinderErrorDisplay, #customFinderErrorDisplay, #adoptFinderErrorDisplay, #videoFinderErrorDisplay { display: none; color: var(--error-color); background-color: rgba(231, 76, 60, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid var(--error-color); margin-top: 1.5rem; margin-bottom: 1.5rem; text-align: left; direction: ltr; }
+        #errorDisplay, #grantFinderErrorDisplay, #rfpFinderErrorDisplay, #customFinderErrorDisplay, #adoptFinderErrorDisplay, #videoFinderErrorDisplay, #patentErrorDisplay, #academicErrorDisplay, #bizErrorDisplay { display: none; color: var(--error-color); background-color: rgba(231, 76, 60, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid var(--error-color); margin-top: 1.5rem; margin-bottom: 1.5rem; text-align: left; direction: ltr; }
         .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         #grantFinderSourcesWrapper, #rfpFinderSourcesWrapper, #customFinderSourcesWrapper, #adoptFinderSourcesWrapper { display: none; margin-top: 1rem; text-align: left; direction: ltr; }
         #grantFinderSourcesWrapper h4, #rfpFinderSourcesWrapper h4, #customFinderSourcesWrapper h4, #adoptFinderSourcesWrapper h4 { margin-bottom: 0.5rem; }
@@ -498,6 +523,78 @@
             transform: translateY(-2px);
         }
 
+        .bots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .bot-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .bot-card h3 { color: var(--primary-color); }
+        .bot-card a.bot-open {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-color);
+            color: #fff;
+            text-decoration: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: auto;
+        }
+        .bot-card a.bot-open:hover { background: #003f5c; }
+        .bot-menu-list { padding-inline-start: 1.2rem; color: #495057; }
+
+        .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .related-card a { color: var(--secondary-color); font-weight: 600; text-decoration: none; }
+        .related-card a:hover { text-decoration: underline; }
+        .check-row { display: flex; align-items: center; gap: 0.6rem; }
+
+        #eco-chat { position: fixed; inset-inline-end: 1.1rem; bottom: 1.1rem; z-index: 2000; font-family: inherit; }
+        .eco-chat-fab {
+            width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer;
+            background: var(--primary-color); color: #fff; box-shadow: 0 8px 24px rgba(0,95,115,.35);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .eco-chat-fab:hover { background: #003f5c; transform: none; }
+        .eco-chat-window {
+            width: min(380px, calc(100vw - 1.5rem)); height: min(560px, calc(100vh - 6rem));
+            background: #fff; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.18);
+            display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .eco-chat-head {
+            background: var(--primary-color); color: #fff; padding: 0.85rem 1rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+        }
+        .eco-chat-head strong { display: block; font-size: 1rem; }
+        .eco-chat-head span { font-size: 0.75rem; opacity: .85; }
+        .eco-chat-head-actions { display: flex; align-items: center; gap: 0.4rem; }
+        .eco-chat-head-actions a {
+            color: #fff; text-decoration: none; font-size: 0.8rem; border: 1px solid rgba(255,255,255,.4);
+            padding: 0.2rem 0.55rem; border-radius: 999px;
+        }
+        .eco-chat-head-actions button {
+            background: transparent; color: #fff; font-size: 1.4rem; padding: 0 .4rem; line-height: 1;
+        }
+        .eco-chat-log { flex: 1; overflow: auto; padding: 0.9rem; background: #f4f7f8; display: flex; flex-direction: column; gap: 0.55rem; }
+        .eco-chat-msg { max-width: 90%; padding: 0.55rem 0.75rem; border-radius: 12px; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.55; }
+        .eco-chat-msg.bot { background: #fff; border: 1px solid var(--border-color); align-self: flex-start; }
+        .eco-chat-msg.user { background: var(--secondary-color); color: #fff; align-self: flex-end; }
+        .eco-chat-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.5rem 0.7rem; border-top: 1px solid var(--border-color); background: #fff; }
+        .eco-chat-chips button { padding: 0.3rem 0.55rem; font-size: 0.78rem; background: #eef6f6; color: var(--primary-color); border-radius: 999px; }
+        .eco-chat-chips button.active, .eco-chat-chips button:hover { background: var(--primary-color); color: #fff; transform: none; }
+        .eco-chat-form { display: flex; gap: 0.4rem; padding: 0.6rem; border-top: 1px solid var(--border-color); background: #fff; }
+        .eco-chat-form input { flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.7rem; font-family: inherit; }
+        .eco-chat-form button { background: var(--accent-color); color: #fff; padding: 0.55rem 0.9rem; }
+        .eco-chat-form button:hover { background: #ca6702; transform: none; }
         footer {
             background-color: var(--primary-color);
             color: #fff;
@@ -506,7 +603,6 @@
             margin-top: auto;
         }
     </style>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="lang-fa">
     <header>
@@ -516,6 +612,11 @@
                 <h1 data-key="brandName">FindExpert.ir</h1>
             </div>
             <div class="lang-switcher">
+                <div class="api-key-box">
+                    <input type="password" id="apiKeyInput" autocomplete="off" data-key-placeholder="apiKeyPlaceholder" placeholder="Gemini API Key">
+                    <button type="button" id="saveApiKeyBtn" data-key="saveApiKey">Save</button>
+                    <span id="apiKeyStatus" class="api-key-status"></span>
+                </div>
                 <button id="lang-fa" data-lang="fa">فارسی</button>
                 <button id="lang-en" data-lang="en">English</button>
             </div>
@@ -643,6 +744,77 @@
             </div>
         </section>
 
+        <section class="page-section" id="bots-section">
+            <div class="container">
+                <h2 class="section-title" data-key="botsSectionTitle">ربات تلگرام و بله</h2>
+                <p style="text-align:center;max-width:760px;margin:-1rem auto 2rem;" data-key="botsSectionIntro">همان ابزارهای سایت را در تلگرام و بله استفاده کنید. منوی دکمه‌ای برای گرنت، فراخوان، پروپوزال و پرسش از هوش مصنوعی — به‌علاوه ارسال خودکار فرصت‌ها به کانال.</p>
+                <div class="bots-grid">
+                    <div class="bot-card">
+                        <h3 data-key="telegramBotTitle">ربات تلگرام</h3>
+                        <p data-key="telegramBotText">منوی پایین صفحه و دکمه‌های شیشه‌ای همان ماژول‌های FindExpert.ir را باز می‌کنند.</p>
+                        <a class="bot-open" id="telegramBotLink" href="https://t.me/FindExperts_bot" target="_blank" rel="noopener" data-key="telegramBotCta">باز کردن در تلگرام</a>
+                        <button type="button" class="bot-open" id="openSiteChatBtn" style="margin-top:0.5rem;background:var(--accent-color);border:none;width:100%;" data-key="openSiteChat">پنجره چت در همین صفحه</button>
+                    </div>
+                    <div class="bot-card">
+                        <h3 data-key="baleBotTitle">ربات بله</h3>
+                        <p data-key="baleBotText">همان ربات روی پیام‌رسان بله (API سازگار با تلگرام: tapi.bale.ai).</p>
+                        <a class="bot-open" id="baleBotLink" href="https://ble.ir/botfather" target="_blank" rel="noopener" data-key="baleBotCta">باز کردن در بله</a>
+                    </div>
+                    <div class="bot-card">
+                        <h3 data-key="botMenuTitle">منو و دکمه‌ها</h3>
+                        <ul class="bot-menu-list">
+                            <li data-key="botMenu1">یابنده گرنت</li>
+                            <li data-key="botMenu2">فراخوان‌یاب (RFP)</li>
+                            <li data-key="botMenu3">پیش‌نویس پروپوزال</li>
+                            <li data-key="botMenu4">تحلیل گرنت</li>
+                            <li data-key="botMenu5">پرسش از هوش مصنوعی</li>
+                            <li data-key="botMenu6">گزارش‌های پروژه</li>
+                            <li data-key="botMenu7">ارسال خودکار به کانال</li>
+                            <li data-key="botMenu8">پیش‌نویس پتنت و prior art</li>
+                            <li data-key="botMenu9">مقاله / پروپوزال علمی</li>
+                            <li data-key="botMenu10">طرح کسب‌وکار سبز</li>
+                            <li data-key="botMenu11">کاتالوگ Hugging Face</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section" id="related-section">
+            <div class="container">
+                <h2 class="section-title" data-key="relatedSectionTitle">ماژول‌های مرتبط</h2>
+                <p style="text-align:center;max-width:780px;margin:-1rem auto 2rem;" data-key="relatedSectionIntro">گرنت، پتنت، مقاله علمی و طرح کسب‌وکار روی همین سایت و ربات‌ها در دسترس است. پیش‌بینی گسترش آتش از تصاویر ماهواره‌ای به‌عنوان موضوع پژوهش و ادعاهای اختراع استفاده می‌شود — مدل‌های سنگین ML در این اپ اجرا نمی‌شوند.</p>
+                <div class="related-grid">
+                    <div class="content-card related-card">
+                        <h3 data-key="relatedGreenTitle">Green Hope — گرنت، پتنت، مقاله</h3>
+                        <p data-key="relatedGreenText">الگوی نگارش پتنت، هاب مقالات دانشگاهی، یابنده گرنت و طرح دانش‌بنیان از پروژه Green Hope استخراج شده است.</p>
+                        <p><a href="https://github.com/Websites-by-AI/green-hope-fire-jugle-pages" target="_blank" rel="noopener">github.com/Websites-by-AI/green-hope-fire-jugle-pages</a></p>
+                    </div>
+                    <div class="content-card related-card">
+                        <h3 data-key="relatedFireTitle">SatelliteVu — گسترش آتش‌سوزی</h3>
+                        <p data-key="relatedFireText">Hackathon پاسخ به بلایا با NASA FIRMS و Sentinel-2: موضوع مناسب برای پروپوزال علمی، ادعاهای پتنت IoT/پهپاد، و گرنت‌های disaster-response.</p>
+                        <p><a href="https://github.com/Websites-by-AI/Wildfires-SatelliteVu-AWS-Disaster-Response-Hackathon" target="_blank" rel="noopener">Wildfires-SatelliteVu hackathon</a></p>
+                    </div>
+                    <div class="content-card related-card">
+                        <h3 data-key="relatedToolsTitle">ابزارهای جدید در FindExpert</h3>
+                        <p data-key="relatedToolsText">پیش‌نویس پتنت + جستجوی prior art، نگارش بخش‌های مقاله (IEEE / Nature / Springer / MDPI)، طرح کسب‌وکار سبز، و همان‌ها در منوی تلگرام و بله.</p>
+                    </div>
+                    <div class="content-card related-card">
+                        <h3 data-key="relatedHfTitle">Hugging Face — لینک ماژول‌ها</h3>
+                        <p data-key="relatedHfText">مدل‌ها و اسپیس‌ها در این سایت اجرا نمی‌شوند. کاتالوگ زیر همان دکمه‌های ربات تلگرام و پنجره چت پایین صفحه است.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section" id="hf-section">
+            <div class="container">
+                <h2 class="section-title" data-key="hfSectionTitle">ماژول‌های Hugging Face</h2>
+                <p style="text-align:center;max-width:780px;margin:-1rem auto 2rem;" data-key="hfSectionIntro">چهار بخش: RAG، نگارش، داده، اسپیس. لینک‌ها روی Cloudflare Pages به‌صورت ایستا سرو می‌شوند — بدون iframe و بدون بارگذاری وزن مدل.</p>
+                <div class="related-grid" id="hfCatalog"></div>
+            </div>
+        </section>
+
         <section class="page-section" id="tools-section">
             <div class="container">
                 <h2 class="section-title" data-key="toolsSectionTitle">ابزارهای کمکی</h2>
@@ -694,7 +866,7 @@
                                 <form id="adopt-form">
                                     <div class="form-group">
                                         <label for="adoptUrl" data-key="adoptFormLabelUrl">Grant URL</label>
-                                        <input type="url" id="adoptUrl" placeholder="https://..." readonly>
+                                        <input type="url" id="adoptUrl" placeholder="https://...">
                                     </div>
                                     <div class="form-group">
                                         <label for="adoptKeywords" data-key="adoptFormLabelKeywords">Topic Keywords</label>
@@ -857,7 +1029,6 @@
             <p data-key="footerText">&copy; ۲۰۲۵ FindExpert.ir - کلیه حقوق محفوظ است.</p>
         </div>
     </footer>
-    <script type="module" src="index.tsx"></script>
-<script type="module" src="/index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>

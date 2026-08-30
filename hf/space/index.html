@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FindExpert.ir ecoAI — RAG</title>
+  <style>
+    :root { --p:#005f73; --s:#0a9396; --a:#ee9b00; --bg:#f8f9fa; --bd:#dee2e6; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Vazirmatn, sans-serif; background:var(--bg); color:#212529; line-height:1.7; }
+    header { background:var(--p); color:#fff; padding:1.2rem 1rem; }
+    header h1 { margin:0; font-size:1.35rem; }
+    header p { margin:.35rem 0 0; opacity:.9; font-size:.95rem; }
+    .wrap { max-width:880px; margin:0 auto; padding:1.2rem; }
+    .bar { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+    input, select, button { font: inherit; padding:.55rem .7rem; border-radius:8px; border:1px solid var(--bd); }
+    input { flex:1; min-width:180px; }
+    button { background:var(--a); color:#fff; border:none; cursor:pointer; font-weight:600; }
+    .links a { color:var(--s); font-weight:600; margin-inline-end:1rem; }
+    .card { background:#fff; border:1px solid var(--bd); border-radius:12px; padding:1rem 1.1rem; margin-bottom:.8rem; }
+    .card h3 { margin:0 0 .35rem; color:var(--p); font-size:1.05rem; }
+    .meta { font-size:.8rem; color:#6c757d; }
+    .empty { text-align:center; color:#6c757d; padding:2rem; }
+    .draft { white-space:pre-wrap; background:#fff; border:1px dashed var(--p); border-radius:12px; padding:1rem; margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1 id="h">FindExpert.ir ecoAI RAG</h1>
+      <p id="sub">retriever فیت‌شده روی دانش پروژه → پیش‌نویس از منابع. نگارش نهایی: Gemini / ربات</p>
+    </div>
+  </header>
+  <div class="wrap">
+    <p class="links">
+      <a href="https://findexpert.ir" target="_blank" rel="noopener">FindExpert.ir</a>
+      <a href="https://t.me/FindExperts_bot" target="_blank" rel="noopener">@FindExperts_bot</a>
+      <a href="https://huggingface.co/sosa123454321/ecoai-rag-encoder" target="_blank" rel="noopener">Encoder</a>
+      <a href="https://huggingface.co/datasets/sosa123454321/ecoai-sft" target="_blank" rel="noopener">SFT</a>
+      <button type="button" id="langBtn">English</button>
+    </p>
+    <div class="bar">
+      <input id="q" placeholder="مثلاً پروپوزال حریق زاگرس FIRMS…" />
+      <select id="kind">
+        <option value="">همه</option>
+        <option value="grant">grant</option>
+        <option value="rfp">rfp</option>
+        <option value="patent">patent</option>
+        <option value="academic">academic</option>
+        <option value="business">business</option>
+        <option value="tool">tool</option>
+      </select>
+      <button type="button" id="go">RAG</button>
+    </div>
+    <div id="draft"></div>
+    <div id="out"></div>
+  </div>
+  <script>
+    let enc = null;
+    let vocabIndex = {};
+    let fa = true;
+    const out = document.getElementById('out');
+    const draftEl = document.getElementById('draft');
+    const q = document.getElementById('q');
+    const kind = document.getElementById('kind');
+
+    function tokenize(text) {
+      return String(text || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+    }
+
+    function queryVec(text) {
+      const tf = {};
+      const toks = tokenize(text);
+      const grams = [];
+      for (let i = 0; i < toks.length; i++) {
+        grams.push(toks[i]);
+        if (i + 1 < toks.length) grams.push(toks[i] + ' ' + toks[i + 1]);
+      }
+      grams.forEach(function (g) { tf[g] = (tf[g] || 0) + 1; });
+      const vec = {};
+      let n = 0;
+      Object.keys(tf).forEach(function (g) {
+        const idx = vocabIndex[g];
+        if (idx === undefined) return;
+        const v = (1 + Math.log(tf[g])) * enc.idf[idx];
+        vec[idx] = v;
+        n += v * v;
+      });
+      return { vec: vec, norm: Math.sqrt(n) || 1 };
+    }
+
+    function docNorm(w) {
+      let n = 0;
+      Object.keys(w).forEach(function (k) { n += w[k] * w[k]; });
+      return Math.sqrt(n) || 1;
+    }
+
+    function cosine(qv, doc) {
+      let dot = 0;
+      const w = doc.w || {};
+      Object.keys(qv.vec).forEach(function (k) {
+        if (w[k] != null) dot += qv.vec[k] * w[k];
+      });
+      return dot / (qv.norm * docNorm(w));
+    }
+
+    function paint(items) {
+      if (!items.length) {
+        out.innerHTML = '<p class="empty">' + (fa ? 'موردی پیدا نشد.' : 'No matches.') + '</p>';
+        return;
+      }
+      out.innerHTML = items.map(function (r, i) {
+        const sc = r._score != null ? ' · score ' + r._score.toFixed(3) : '';
+        return '<article class="card"><div class="meta">[' + (i + 1) + '] ' + r.doc_type + ' · ' + r.lang + sc +
+          '</div><h3>' + r.title + '</h3><p>' + r.text + '</p>' +
+          (r.url ? '<p><a href="' + r.url + '" target="_blank" rel="noopener">' + r.url + '</a></p>' : '') +
+          '</article>';
+      }).join('');
+    }
+
+    function makeDraft(query, hits) {
+      if (!hits.length) { draftEl.innerHTML = ''; return; }
+      const src = hits.map(function (h, i) {
+        return '[' + (i + 1) + '] ' + h.title + ' — ' + h.text;
+      }).join('\n');
+      const faTxt =
+        'پیش‌نویس از RAG (نه Gemini).\nعنوان/سؤال: ' + query +
+        '\n\nاز منابع بازیابی‌شده:\n' + src +
+        '\n\nپرامپت برای Gemini در سایت/ربات:\nWrite the research_proposal section. Venue: IEEE. Language: Persian.\nUse ONLY the sources [1]… Cite [n]. No invented papers.\nRetrieved sources:\n' + src;
+      const enTxt =
+        'Draft from RAG (not Gemini).\nQuery: ' + query +
+        '\n\nRetrieved:\n' + src +
+        '\n\nPrompt for Gemini on the site/bot:\nWrite the research_proposal section. Venue: IEEE. Language: English.\nUse ONLY sources [1]…. Cite [n]. No invented papers.\nRetrieved sources:\n' + src;
+      draftEl.innerHTML = '<div class="draft"></div>';
+      draftEl.firstChild.textContent = fa ? faTxt : enTxt;
+    }
+
+    function search() {
+      const needle = (q.value || '').trim();
+      const k = kind.value;
+      if (!enc) return;
+      let scored;
+      if (!needle) {
+        scored = enc.docs.filter(function (r) { return !k || r.doc_type === k; });
+        paint(scored);
+        draftEl.innerHTML = '';
+        return;
+      }
+      const qv = queryVec(needle);
+      scored = enc.docs.map(function (r) {
+        const copy = Object.assign({}, r);
+        copy._score = cosine(qv, r);
+        return copy;
+      }).filter(function (r) {
+        if (k && r.doc_type !== k) return false;
+        return r._score > 0.01;
+      }).sort(function (a, b) { return b._score - a._score; }).slice(0, 5);
+      paint(scored);
+      makeDraft(needle, scored);
+    }
+
+    document.getElementById('go').onclick = search;
+    q.addEventListener('keydown', function (e) { if (e.key === 'Enter') search(); });
+    kind.onchange = search;
+    document.getElementById('langBtn').onclick = function () {
+      fa = !fa;
+      document.documentElement.lang = fa ? 'fa' : 'en';
+      document.documentElement.dir = fa ? 'rtl' : 'ltr';
+      document.getElementById('sub').textContent = fa
+        ? 'retriever فیت‌شده روی دانش پروژه → پیش‌نویس از منابع. نگارش نهایی: Gemini / ربات'
+        : 'Fitted retriever on project knowledge → draft from hits. Final writing: Gemini / bot';
+      q.placeholder = fa ? 'مثلاً پروپوزال حریق زاگرس FIRMS…' : 'e.g. Zagros wildfire FIRMS proposal';
+      document.getElementById('go').textContent = 'RAG';
+      document.getElementById('langBtn').textContent = fa ? 'English' : 'فارسی';
+    };
+
+    fetch('encoder.json').then(function (r) { return r.json(); }).then(function (data) {
+      enc = data;
+      vocabIndex = {};
+      data.vocab.forEach(function (g, i) { vocabIndex[g] = i; });
+      paint(data.docs);
+    }).catch(function () {
+      out.innerHTML = '<p class="empty">encoder.json failed to load</p>';
+    });
+  </script>
+</body>
+</html>

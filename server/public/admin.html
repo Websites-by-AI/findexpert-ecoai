@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FindExpert.ir | Bot admin</title>
+  <style>
+    :root { --p:#005f73; --s:#0a9396; --a:#ee9b00; --bg:#f8f9fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: Vazirmatn, Tahoma, sans-serif; background:var(--bg); color:#212529; }
+    header { background:#fff; padding:1rem 8%; box-shadow:0 2px 8px rgba(0,0,0,.06); display:flex; justify-content:space-between; align-items:center; }
+    h1 { color:var(--p); margin:0; font-size:1.3rem; }
+    main { width:min(900px, 92%); margin:2rem auto; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .card { background:#fff; border-radius:12px; padding:1.25rem; box-shadow:0 4px 12px rgba(0,0,0,.06); }
+    .ok { color:#198754; font-weight:600; }
+    .no { color:#c0392b; font-weight:600; }
+    button { background:var(--p); color:#fff; border:0; border-radius:8px; padding:.7rem 1.2rem; cursor:pointer; font-family:inherit; }
+    button:hover { background:#003f5c; }
+    pre { background:#0b1f24; color:#d8f3dc; padding:1rem; border-radius:8px; overflow:auto; min-height:120px; direction:ltr; text-align:left; }
+    a { color:var(--s); }
+    @media (max-width:700px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FindExpert.ir — ربات تلگرام و بله</h1>
+    <a href="/">بازگشت به سایت</a>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="card">
+        <h2>وضعیت</h2>
+        <p id="status">در حال بارگذاری…</p>
+        <p><button id="publish">ارسال فوری به کانال‌ها</button></p>
+      </div>
+      <div class="card">
+        <h2>لینک ربات‌ها</h2>
+        <p id="links"></p>
+        <p>توکن‌ها را در <code>.env.local</code> بگذارید. ربات را ادمین کانال کنید.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h2>خروجی انتشار</h2>
+      <pre id="out">هنوز ارسالی انجام نشده.</pre>
+    </div>
+  </main>
+  <script>
+    async function load() {
+      const r = await fetch('/api/bots').then(x => x.json());
+      document.getElementById('status').innerHTML =
+        `Gemini: <span class="${r.gemini?'ok':'no'}">${r.gemini?'آماده':'نیست'}</span><br>` +
+        `Telegram: <span class="${r.telegram.enabled?'ok':'no'}">${r.telegram.enabled?'فعال':'خاموش'}</span> · کانال ${r.telegram.channels}<br>` +
+        `Bale: <span class="${r.bale.enabled?'ok':'no'}">${r.bale.enabled?'فعال':'خاموش'}</span> · کانال ${r.bale.channels}`;
+      document.getElementById('links').innerHTML =
+        (r.telegram.link ? `<a href="${r.telegram.link}" target="_blank">تلگرام ${r.telegram.username}</a><br>` : 'تلگرام: TELEGRAM_BOT_TOKEN تنظیم نشده<br>') +
+        (r.bale.link ? `<a href="${r.bale.link}" target="_blank">بله ${r.bale.username}</a>` : 'بله: BALE_BOT_TOKEN تنظیم نشده');
+    }
+    document.getElementById('publish').onclick = async () => {
+      document.getElementById('out').textContent = 'در حال ساخت خلاصه و ارسال…';
+      try {
+        const r = await fetch('/api/publish', { method:'POST' }).then(x => x.json());
+        document.getElementById('out').textContent = JSON.stringify(r, null, 2);
+      } catch (e) {
+        document.getElementById('out').textContent = String(e);
+      }
+    };
+    load();
+  </script>
+</body>
+</html>

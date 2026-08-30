@@ -1,0 +1,19 @@
+# Cloudflare Worker host for the Telegram bot (separate from Pages static site)
+# Deploy: npx wrangler deploy --config wrangler.bot.toml
+# Secrets: npx wrangler secret put TELEGRAM_BOT_TOKEN --config wrangler.bot.toml
+# KV:     npx wrangler kv namespace create COMMUNITY --config wrangler.bot.toml
+# Then paste the id below and setWebhook to https://<name>.workers.dev/set-webhook
+
+name = "findexpert-bot"
+main = "cloudflare/worker.js"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[vars]
+TELEGRAM_BOT_USERNAME = "FindExperts_bot"
+SITE_URL = "https://findexpert.ir"
+
+# Uncomment after: wrangler kv namespace create COMMUNITY
+# [[kv_namespaces]]
+# binding = "COMMUNITY"
+# id = "YOUR_KV_NAMESPACE_ID"

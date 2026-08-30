@@ -1,8 +1,11 @@
 
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { jsPDF } from "jspdf";
 import * as docx from "docx";
+import { initWritingModules } from "./writing-modules";
+import { initChatWidget } from "./chat-widget";
+import { initHfCatalog } from "./hf-catalog-ui";
 
 // --- Type Declarations ---
 // FIX: Replaced inline type for `window.aistudio` with a named `AIStudio` interface
@@ -13,8 +16,7 @@ declare global {
     openSelectKey: () => Promise<void>;
   }
   interface Window {
-    // FIX: Add readonly modifier to resolve TypeScript declaration conflict.
-    readonly aistudio: AIStudio;
+    aistudio?: AIStudio;
   }
 }
 
@@ -148,7 +150,102 @@ const translations = {
     generateVideoButton: "Generate Video",
     downloadVideoButton: "Download Video",
 
+    botsSectionTitle: "Telegram & Bale bots",
+    botsSectionIntro: "Use the same FindExpert.ir tools in Telegram and Bale. Reply menus for grants, RFPs, proposals, patents, academic writing, business plans — plus automatic channel posts.",
+    telegramBotTitle: "Telegram bot",
+    telegramBotText: "Reply keyboard and inline buttons open the same FindExpert.ir modules.",
+    telegramBotCta: "Open in Telegram",
+    openSiteChat: "Chat window on this page",
+    baleBotTitle: "Bale bot",
+    baleBotText: "The same bot on Bale messenger (Telegram-compatible API: tapi.bale.ai).",
+    baleBotCta: "Open in Bale",
+    botMenuTitle: "Menu & buttons",
+    botMenu1: "Grant finder",
+    botMenu2: "RFP finder",
+    botMenu3: "Proposal draft",
+    botMenu4: "Analyze grant",
+    botMenu5: "Ask AI",
+    botMenu6: "Project reports",
+    botMenu7: "Automatic channel posts",
+    botMenu8: "Patent draft & prior art",
+    botMenu9: "Academic paper / proposal",
+    botMenu10: "Green business plan",
+    botMenu11: "Hugging Face catalog",
+
+    relatedSectionTitle: "Related modules",
+    relatedSectionIntro: "Grant, patent, academic, and business-plan writers run on this site and the bots. Satellite wildfire spread is a research/patent topic — heavy ML models are not executed here.",
+    relatedGreenTitle: "Green Hope — grants, patents, papers",
+    relatedGreenText: "Patent drafting, academic hub, grant finder, and دانش‌بنیان patterns come from the Green Hope project.",
+    relatedFireTitle: "SatelliteVu — wildfire spread",
+    relatedFireText: "AWS disaster-response hackathon using NASA FIRMS and Sentinel-2: a topic for papers, IoT/drone patent claims, and disaster-response grants.",
+    relatedToolsTitle: "New tools on FindExpert",
+    relatedToolsText: "Patent draft + prior-art search, academic sections (IEEE / Nature / Springer / MDPI), green business plans — also on Telegram and Bale.",
+    relatedHfTitle: "Hugging Face — module links",
+    relatedHfText: "Models and Spaces are not run on this site. The catalog below is the same list as the Telegram button and the bottom chat chip.",
+    hfSectionTitle: "Hugging Face modules",
+    hfSectionIntro: "Four parts: RAG, writer, dataset, Space. Links are static on Cloudflare Pages — no iframes, no model weights.",
+
+    accordionPatentTitle: "Patent draft & prior art",
+    patentFormTitle: "Draft a patent from an idea",
+    patentFormSubtitle: "Describe the invention. The assistant drafts filing sections and can search public prior art. Not legal advice.",
+    patentFormLabelSection: "Section",
+    patentOptFull: "Full draft",
+    patentOptSummary: "Summary / abstract",
+    patentOptProblem: "Problem",
+    patentOptSolution: "Solution",
+    patentOptNovelty: "Novelty",
+    patentOptClaims: "Claims",
+    patentFormLabelIdea: "Invention idea",
+    patentFormPlaceholderIdea: "e.g. IoT + drone early-warning for Zagros wildfires using FIRMS hotspots",
+    patentDraftButton: "Draft patent",
+    priorArtButton: "Search prior art",
+    placeholderPatent: "Patent draft and prior-art hits will appear here.",
+
+    accordionAcademicTitle: "Academic paper & proposal",
+    academicFormTitle: "Academic paper / proposal",
+    academicFormSubtitle: "Write IEEE / Nature / Springer / MDPI sections. Wildfire, FIRMS, and Sentinel-2 can be used as research context.",
+    academicFormLabelSection: "Section",
+    academicOptProposal: "Research proposal",
+    academicOptAbstract: "Abstract",
+    academicOptIntro: "Introduction",
+    academicOptMethod: "Methodology",
+    academicOptResults: "Results",
+    academicOptDiscussion: "Discussion",
+    academicOptConclusion: "Conclusion",
+    academicOptRefs: "References",
+    academicOptFull: "Full paper sketch",
+    academicFormLabelStyle: "Venue style",
+    academicFormLabelTitle: "Title",
+    academicFormPlaceholderTitle: "e.g. Next-day wildfire spread from Sentinel-2 and FIRMS",
+    academicFormLabelOverview: "Overview / notes",
+    academicFormPlaceholderOverview: "Hypothesis, data, methods, expected contribution…",
+    academicFormLabelLatex: "Output LaTeX",
+    academicDraftButton: "Draft section",
+    placeholderAcademic: "Academic draft will appear here.",
+
+    accordionBizTitle: "Green business plan",
+    bizFormTitle: "Green / دانش‌بنیان business plan",
+    bizFormSubtitle: "Investor-ready sections for environmental and university spin-outs.",
+    bizFormLabelSection: "Section",
+    bizOptFull: "Full plan",
+    bizOptExec: "Executive summary",
+    bizOptMarket: "Market analysis",
+    bizOptOps: "Operations",
+    bizOptFinance: "Financials",
+    bizOptTeam: "Team",
+    bizFormLabelTitle: "Venture title",
+    bizFormPlaceholderTitle: "e.g. Community wildfire-sensor network for Iranian forests",
+    bizFormLabelOverview: "Overview",
+    bizFormPlaceholderOverview: "Problem, product, customers, revenue model…",
+    bizDraftButton: "Draft plan",
+    placeholderBiz: "Business-plan draft will appear here.",
+
     sourcesTitle: "Sources:",
+    saveApiKey: "Save",
+    apiKeyPlaceholder: "Gemini API Key",
+    apiKeySaved: "API key saved",
+    apiKeyMissing: "Add a Gemini API key to use the tools",
+    apiKeyReady: "API key ready",
 
     // Footer
     footerText: "&copy; 2025 FindExpert.ir - All rights reserved.",
@@ -243,6 +340,96 @@ const translations = {
     reportCard2Title: "طرح کسب و کار (Business Plan)",
     reportCard3Title: "ارائه سرمایه‌گذار (Pitch Deck)",
     reportCard4Title: "پروپوزال پروژه",
+
+    botsSectionTitle: "ربات تلگرام و بله",
+    botsSectionIntro: "همان ابزارهای FindExpert.ir را در تلگرام و بله استفاده کنید. منوی دکمه‌ای برای گرنت، فراخوان، پروپوزال و پرسش از هوش مصنوعی — به‌علاوه ارسال خودکار فرصت‌ها به کانال.",
+    telegramBotTitle: "ربات تلگرام",
+    telegramBotText: "منوی پایین صفحه و دکمه‌های شیشه‌ای همان ماژول‌های سایت را باز می‌کنند.",
+    telegramBotCta: "باز کردن در تلگرام",
+    openSiteChat: "پنجره چت در همین صفحه",
+    baleBotTitle: "ربات بله",
+    baleBotText: "همان ربات روی پیام‌رسان بله (API سازگار با تلگرام: tapi.bale.ai).",
+    baleBotCta: "باز کردن در بله",
+    botMenuTitle: "منو و دکمه‌ها",
+    botMenu1: "یابنده گرنت",
+    botMenu2: "فراخوان‌یاب (RFP)",
+    botMenu3: "پیش‌نویس پروپوزال",
+    botMenu4: "تحلیل گرنت",
+    botMenu5: "پرسش از هوش مصنوعی",
+    botMenu6: "گزارش‌های پروژه",
+    botMenu7: "ارسال خودکار به کانال",
+    botMenu8: "پیش‌نویس پتنت و prior art",
+    botMenu9: "مقاله / پروپوزال علمی",
+    botMenu10: "طرح کسب‌وکار سبز",
+    botMenu11: "کاتالوگ Hugging Face",
+
+    relatedSectionTitle: "ماژول‌های مرتبط",
+    relatedSectionIntro: "گرنت، پتنت، مقاله علمی و طرح کسب‌وکار روی همین سایت و ربات‌ها در دسترس است. پیش‌بینی گسترش آتش از تصاویر ماهواره‌ای به‌عنوان موضوع پژوهش و ادعاهای اختراع استفاده می‌شود — مدل‌های سنگین ML در این اپ اجرا نمی‌شوند.",
+    relatedGreenTitle: "Green Hope — گرنت، پتنت، مقاله",
+    relatedGreenText: "الگوی نگارش پتنت، هاب مقالات دانشگاهی، یابنده گرنت و طرح دانش‌بنیان از پروژه Green Hope استخراج شده است.",
+    relatedFireTitle: "SatelliteVu — گسترش آتش‌سوزی",
+    relatedFireText: "Hackathon پاسخ به بلایا با NASA FIRMS و Sentinel-2: موضوع مناسب برای پروپوزال علمی، ادعاهای پتنت IoT/پهپاد، و گرنت‌های disaster-response.",
+    relatedToolsTitle: "ابزارهای جدید در FindExpert",
+    relatedToolsText: "پیش‌نویس پتنت + جستجوی prior art، نگارش بخش‌های مقاله (IEEE / Nature / Springer / MDPI)، طرح کسب‌وکار سبز، و همان‌ها در منوی تلگرام و بله.",
+    relatedHfTitle: "Hugging Face — لینک ماژول‌ها",
+    relatedHfText: "مدل‌ها و اسپیس‌ها در این سایت اجرا نمی‌شوند. کاتالوگ همان دکمهٔ تلگرام و چیپ پنجره چت پایین صفحه است.",
+    hfSectionTitle: "ماژول‌های Hugging Face",
+    hfSectionIntro: "چهار بخش: RAG، نگارش، داده، اسپیس. لینک‌ها روی Cloudflare Pages ایستا هستند — بدون iframe و بدون وزن مدل.",
+
+    accordionPatentTitle: "پیش‌نویس پتنت و prior art",
+    patentFormTitle: "پیش‌نویس پتنت از روی ایده",
+    patentFormSubtitle: "اختراع را توصیف کنید. دستیار بخش‌های پرونده را می‌نویسد و می‌تواند prior art عمومی را جستجو کند. مشاوره حقوقی نیست.",
+    patentFormLabelSection: "بخش",
+    patentOptFull: "پیش‌نویس کامل",
+    patentOptSummary: "خلاصه / چکیده",
+    patentOptProblem: "مسئله",
+    patentOptSolution: "راه‌حل",
+    patentOptNovelty: "نوآوری",
+    patentOptClaims: "ادعاها",
+    patentFormLabelIdea: "ایده اختراع",
+    patentFormPlaceholderIdea: "مثال: هشدار زودهنگام حریق زاگرس با IoT، پهپاد و نقاط داغ FIRMS",
+    patentDraftButton: "پیش‌نویس پتنت",
+    priorArtButton: "جستجوی prior art",
+    placeholderPatent: "پیش‌نویس پتنت و نتایج prior art اینجا نمایش داده می‌شود.",
+
+    accordionAcademicTitle: "نگارش مقاله و پروپوزال علمی",
+    academicFormTitle: "مقاله / پروپوزال علمی",
+    academicFormSubtitle: "بخش‌های IEEE / Nature / Springer / MDPI. حریق، FIRMS و Sentinel-2 می‌توانند زمینه پژوهش باشند.",
+    academicFormLabelSection: "بخش",
+    academicOptProposal: "پروپوزال پژوهشی",
+    academicOptAbstract: "چکیده",
+    academicOptIntro: "مقدمه",
+    academicOptMethod: "روش‌شناسی",
+    academicOptResults: "نتایج",
+    academicOptDiscussion: "بحث",
+    academicOptConclusion: "نتیجه‌گیری",
+    academicOptRefs: "منابع",
+    academicOptFull: "طرح کلی مقاله کامل",
+    academicFormLabelStyle: "سبک نشریه",
+    academicFormLabelTitle: "عنوان",
+    academicFormPlaceholderTitle: "مثال: پیش‌بینی گسترش آتش روز بعد با Sentinel-2 و FIRMS",
+    academicFormLabelOverview: "شرح / یادداشت",
+    academicFormPlaceholderOverview: "فرضیه، داده، روش، سهم علمی مورد انتظار…",
+    academicFormLabelLatex: "خروجی LaTeX",
+    academicDraftButton: "پیش‌نویس بخش",
+    placeholderAcademic: "پیش‌نویس علمی اینجا نمایش داده می‌شود.",
+
+    accordionBizTitle: "طرح کسب‌وکار سبز",
+    bizFormTitle: "طرح کسب‌وکار سبز / دانش‌بنیان",
+    bizFormSubtitle: "بخش‌های آماده سرمایه‌گذار برای اسپین‌اوت دانشگاهی و پروژه‌های محیط‌زیستی.",
+    bizFormLabelSection: "بخش",
+    bizOptFull: "طرح کامل",
+    bizOptExec: "خلاصه اجرایی",
+    bizOptMarket: "تحلیل بازار",
+    bizOptOps: "عملیات",
+    bizOptFinance: "مالی",
+    bizOptTeam: "تیم",
+    bizFormLabelTitle: "عنوان کسب‌وکار",
+    bizFormPlaceholderTitle: "مثال: شبکه حسگر حریق جنگل‌های ایران",
+    bizFormLabelOverview: "شرح کلی",
+    bizFormPlaceholderOverview: "مسئله، محصول، مشتری، مدل درآمد…",
+    bizDraftButton: "پیش‌نویس طرح",
+    placeholderBiz: "پیش‌نویس طرح کسب‌وکار اینجا نمایش داده می‌شود.",
     
     // Tools Section
     toolsSectionTitle: "ابزارهای کمکی",
@@ -317,6 +504,11 @@ const translations = {
     downloadVideoButton: "دانلود ویدیو",
 
     sourcesTitle: "منابع:",
+    saveApiKey: "ذخیره",
+    apiKeyPlaceholder: "کلید Gemini API",
+    apiKeySaved: "کلید API ذخیره شد",
+    apiKeyMissing: "برای استفاده از ابزارها کلید Gemini را وارد کنید",
+    apiKeyReady: "کلید API آماده است",
 
     // Footer
     footerText: "&copy; ۲۰۲۵ FindExpert.ir - کلیه حقوق محفوظ است.",
@@ -340,7 +532,7 @@ const translations = {
     errorGrantTopicDesc: "لطفاً برای جستجوی کمک هزینه، موضوع یا توضیحات پروژه را ارائه دهید.",
     errorRfpTopicDesc: "لطفاً برای جستجوی فراخوان، حوزه تخصص یا توضیحات را ارائه دهید.",
     errorCustomTopicDesc: "لطفاً برای جستجو، یک سوال یا موضوع وارد کنید.",
-    errorAdoptUrl: "لطفاً برای تحلیل، آدرس URL گرنت را وارد کنید.",
+    errorAdoptUrl: "لطفاً برای تحلیل، آدرس URL گرنت را وا؆ت را وارد کنید.",
     errorVideoScenario: "لطفاً یک سناریو برای ویدیو ارائه دهید.",
     errorSafety: "خطای ایمنی محتوا: درخواست شما مسدود شد زیرا پیام یا پاسخ، ناامن تشخیص داده شد. لطفاً پیام خود را اصلاح کنید تا محترمانه‌تر باشد و از موضوعات حساس خودداری کنید.",
     errorRecitation: "خطای تکرار: پاسخ برای جلوگیری از تکرار مطالب دارای حق چاپ مسدود شد. لطفاً درخواست دیگری را امتحان کنید.",
@@ -451,6 +643,7 @@ const downloadVideoBtn = document.getElementById('downloadVideoBtn') as HTMLAnch
 
 
 const LOCAL_STORAGE_KEY = 'ecoAiTaskDetails';
+const API_KEY_STORAGE = 'GEMINI_API_KEY';
 let currentGrantText = '';
 let currentRfpText = '';
 let currentAdoptedGrantText = '';
@@ -459,43 +652,86 @@ let currentRfpData: any[] = [];
 let currentCustomText = '';
 let currentVideoUrl: string | null = null;
 
-// --- AI Response Schemas ---
-const grantSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            title: { type: Type.STRING, description: "The title of the grant." },
-            organization: { type: Type.STRING, description: "The name of the funding organization." },
-            deadline: { type: Type.STRING, description: "The application deadline. (e.g., 'YYYY-MM-DD' or 'Ongoing')" },
-            fundingAmount: { type: Type.STRING, description: "The amount of funding available." },
-            eligibility: { type: Type.STRING, description: "Key eligibility requirements." },
-            summary: { type: Type.STRING, description: "A brief summary of the grant." },
-            link: { type: Type.STRING, description: "A direct URL to the grant page, if available." }
-        },
-        required: ["title", "organization", "deadline", "summary"]
-    }
-};
+function t(key: string, ...args: any[]): string {
+    const value = (translations[currentLang] as any)[key];
+    if (typeof value === 'function') return value(...args);
+    return value ?? key;
+}
 
-const rfpSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            title: { type: Type.STRING, description: "The title of the Request for Proposal." },
-            issuingOrganization: { type: Type.STRING, description: "The name of the organization issuing the RFP." },
-            deadline: { type: Type.STRING, description: "The submission deadline. (e.g., 'YYYY-MM-DD')" },
-            summary: { type: Type.STRING, description: "A brief summary of the RFP." },
-            eligibility: { type: Type.STRING, description: "Key eligibility requirements." },
-            link: { type: Type.STRING, description: "A direct URL to the RFP page, if available." }
-        },
-        required: ["title", "issuingOrganization", "deadline", "summary"]
+function getApiKey(): string {
+    const fromEnv = String(process.env.API_KEY || process.env.GEMINI_API_KEY || '').trim();
+    if (fromEnv) return fromEnv;
+    try {
+        return (localStorage.getItem(API_KEY_STORAGE) || '').trim();
+    } catch {
+        return '';
     }
-};
+}
+
+function requireApiKey(): string {
+    const key = getApiKey();
+    if (!key) throw new Error('API key not valid.');
+    return key;
+}
+
+function createAiClient() {
+    return new GoogleGenAI({ apiKey: requireApiKey() });
+}
+
+function escapeHtml(value: unknown): string {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function parseJsonPayload(text: string | undefined): any {
+    if (!text) throw new Error('Empty AI response');
+    const cleaned = text.replace(/```(?:json)?/gi, '```').trim();
+    const fenced = cleaned.match(/```([\s\S]*?)```/);
+    const raw = (fenced ? fenced[1] : cleaned).trim();
+    const start = raw.search(/[\[{]/);
+    const jsonText = start >= 0 ? raw.slice(start) : raw;
+    return JSON.parse(jsonText);
+}
+
+function updateApiKeyStatus() {
+    const status = document.getElementById('apiKeyStatus');
+    const input = document.getElementById('apiKeyInput') as HTMLInputElement | null;
+    if (!status) return;
+    if (getApiKey()) {
+        status.textContent = t('apiKeyReady');
+        status.className = 'api-key-status ok';
+        if (input && !input.value) input.placeholder = '••••••••';
+    } else {
+        status.textContent = t('apiKeyMissing');
+        status.className = 'api-key-status missing';
+    }
+}
+
+function exportTextPdf(title: string, body: string, fileName: string) {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(title, 10, 12);
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(body || '', 180);
+    let y = 22;
+    for (const line of lines) {
+        if (y > 280) {
+            doc.addPage();
+            y = 15;
+        }
+        doc.text(line, 10, y);
+        y += 6;
+    }
+    doc.save(fileName);
+}
 
 const getPlaceholderHTML = (key: string) => `<div class="placeholder-text">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-    <span>${translations[currentLang][key]}</span>
+    <span>${escapeHtml(t(key))}</span>
 </div>`;
 
 // --- UI & Utility Functions ---
@@ -506,13 +742,12 @@ function setLoading(button: HTMLButtonElement, isLoading: boolean, key: string) 
         button.innerHTML = `<div class="spinner"></div>`;
     } else {
         button.disabled = false;
-        button.innerHTML = `<span data-key="${key}">${translations[currentLang][key] || ''}</span>`;
+        button.innerHTML = `<span data-key="${key}">${escapeHtml(t(key))}</span>`;
     }
 }
 
 function showError(displayElement: HTMLElement, errorKey: string, ...args: any[]) {
-    const messageFn = translations[currentLang][errorKey];
-    displayElement.textContent = typeof messageFn === 'function' ? messageFn(...args) : messageFn;
+    displayElement.textContent = t(errorKey, ...args);
     displayElement.style.display = 'block';
 }
 
@@ -528,15 +763,15 @@ function updateUIForLanguage() {
 
     document.querySelectorAll('[data-key]').forEach(element => {
         const key = element.getAttribute('data-key');
-        if (key && translations[currentLang][key]) {
-            element.innerHTML = translations[currentLang][key];
+        if (key && (translations[currentLang] as any)[key]) {
+            element.innerHTML = t(key);
         }
     });
 
     document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-key-placeholder]').forEach(element => {
         const key = element.getAttribute('data-key-placeholder');
-        if (key && translations[currentLang][key]) {
-            element.placeholder = translations[currentLang][key];
+        if (key && (translations[currentLang] as any)[key]) {
+            element.placeholder = t(key);
         }
     });
     
@@ -560,27 +795,30 @@ function updateUIForLanguage() {
         videoReportContainer.innerHTML = getPlaceholderHTML('placeholderVideo');
     }
 
-    document.querySelectorAll('.lang-switcher button').forEach(btn => {
+    document.querySelectorAll('.lang-switcher button[data-lang]').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLang);
     });
+    updateApiKeyStatus();
 }
 
 function handleApiError(e: any, errorDisplayElement: HTMLElement, serviceErrorKey: string) {
     console.error(e);
-    let message = e.message || '';
-    if (message.includes('API key not valid')) {
+    const message = (e instanceof Error ? e.message : String(e || ''));
+    if (message.includes('API key not valid') || message.includes('API_KEY_INVALID') || message.includes('API key')) {
         showError(errorDisplayElement, 'errorApiKey');
-    } else if (message.includes('429')) {
+    } else if (message.includes('429') || message.toLowerCase().includes('quota') || message.includes('RESOURCE_EXHAUSTED')) {
         showError(errorDisplayElement, 'errorQuota');
-    } else if (message.includes('[VertexAI.FinishReason] RECITATION')) {
+    } else if (message.includes('[VertexAI.FinishReason] RECITATION') || message.includes('RECITATION')) {
         showError(errorDisplayElement, 'errorRecitation');
-    } else if (message.includes('[VertexAI.FinishReason] SAFETY')) {
+    } else if (message.includes('[VertexAI.FinishReason] SAFETY') || message.includes('SAFETY')) {
         showError(errorDisplayElement, 'errorSafety');
     } else if (message.includes('[VertexAI.FinishReason]')) {
         const reason = message.split(']')[1]?.trim() || 'unknown';
         showError(errorDisplayElement, 'errorStopped', reason);
-    } else if (message.includes('network error')) {
+    } else if (message.toLowerCase().includes('network') || message.includes('Failed to fetch')) {
         showError(errorDisplayElement, 'errorNetwork');
+    } else if (message.includes('JSON') || message.includes('parse') || message.includes('Empty AI')) {
+        showError(errorDisplayElement, 'errorParse');
     } else {
         showError(errorDisplayElement, serviceErrorKey);
     }
@@ -637,12 +875,11 @@ async function handleGenerate(e: Event) {
         The response should be well-structured, professional, and ready to be used in a formal document. Use markdown for formatting.`;
 
     try {
-        if (!process.env.API_KEY) throw new Error('API key not valid.');
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = createAiClient();
         const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-        reportContainer.textContent = response.text;
+        reportContainer.textContent = response.text || '';
         copyBtn.style.display = 'block';
-        copyBtn.textContent = translations[currentLang].copyButton;
+        copyBtn.textContent = t('copyButton');
     } catch (e) {
         handleApiError(e, errorDisplay, 'errorServiceUnavailable');
         reportContainer.innerHTML = getPlaceholderHTML('placeholderGenerator');
@@ -659,19 +896,22 @@ function renderGrantResults(data: any[]) {
         grantExportButtons.style.display = 'none';
         return;
     }
-    grantReportContainer.innerHTML = data.map(grant => `
+    grantReportContainer.innerHTML = data.map(grant => {
+        const safeLink = /^https?:\/\//i.test(String(grant.link || '')) ? String(grant.link) : '';
+        return `
         <div class="result-card">
-            <h3>${grant.title || 'N/A'}</h3>
-            <p class="organization">${grant.organization || 'N/A'}</p>
-            <p class="summary">${grant.summary || 'N/A'}</p>
+            <h3>${escapeHtml(grant.title || 'N/A')}</h3>
+            <p class="organization">${escapeHtml(grant.organization || 'N/A')}</p>
+            <p class="summary">${escapeHtml(grant.summary || 'N/A')}</p>
             <div class="details-grid">
-                <div class="detail-item"><span class="detail-label">Deadline:</span> <span class="detail-value deadline">${grant.deadline || 'N/A'}</span></div>
-                <div class="detail-item"><span class="detail-label">Funding:</span> <span class="detail-value amount">${grant.fundingAmount || 'N/A'}</span></div>
-                <div class="detail-item"><span class="detail-label">Eligibility:</span> <span class="detail-value">${grant.eligibility || 'N/A'}</span></div>
+                <div class="detail-item"><span class="detail-label">Deadline:</span> <span class="detail-value deadline">${escapeHtml(grant.deadline || 'N/A')}</span></div>
+                <div class="detail-item"><span class="detail-label">Funding:</span> <span class="detail-value amount">${escapeHtml(grant.fundingAmount || 'N/A')}</span></div>
+                <div class="detail-item"><span class="detail-label">Eligibility:</span> <span class="detail-value">${escapeHtml(grant.eligibility || 'N/A')}</span></div>
             </div>
-            ${grant.link ? `<a href="${grant.link}" target="_blank" class="result-link">View Grant</a>` : ''}
-            ${grant.link ? `<button class="adopt-button" data-url="${grant.link}" data-title="${grant.title || ''}" data-key="adoptButtonOnCard">${translations[currentLang].adoptButtonOnCard}</button>` : ''}
-        </div>`).join('');
+            ${safeLink ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" class="result-link">View Grant</a>` : ''}
+            ${safeLink ? `<button class="adopt-button" data-url="${escapeHtml(safeLink)}" data-title="${escapeHtml(grant.title || '')}" data-key="adoptButtonOnCard">${escapeHtml(t('adoptButtonOnCard'))}</button>` : ''}
+        </div>`;
+    }).join('');
     currentGrantText = grantReportContainer.innerText;
     grantExportButtons.style.display = 'grid';
     document.querySelectorAll('.adopt-button').forEach(button => button.addEventListener('click', handleAdoptButtonClick as EventListener));
@@ -690,7 +930,8 @@ async function handleFindGrants(e: Event) {
     grantExportButtons.style.display = 'none';
     grantFinderSourcesWrapper.style.display = 'none';
     
-    let prompt = `Find environmental grant opportunities based on the following criteria. Respond in JSON format according to the provided schema.
+    let prompt = `Find current, real environmental grant opportunities using web search. Return ONLY a JSON array of objects with keys: title, organization, deadline, fundingAmount, eligibility, summary, link.
+    Prefer real URLs. Language: ${currentLang === 'fa' ? 'Persian' : 'English'}.
     Project Topic/Area: ${grantTopicInput.value}
     Project Description: ${grantDescriptionInput.value}`;
     if (grantFundingAmountInput.value) prompt += `\nMinimum Funding: ${grantFundingAmountInput.value}`;
@@ -699,14 +940,21 @@ async function handleFindGrants(e: Event) {
     if (grantCountryInput.value) prompt += `\nCountry: ${grantCountryInput.value}`;
 
     try {
-        if (!process.env.API_KEY) throw new Error('API key not valid.');
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = createAiClient();
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+            model: 'gemini-2.5-flash',
             contents: prompt,
-            config: { responseMimeType: 'application/json', responseSchema: grantSchema },
+            config: { tools: [{ googleSearch: {} }] },
         });
-        renderGrantResults(JSON.parse(response.text.trim()));
+        const parsed = parseJsonPayload(response.text);
+        renderGrantResults(Array.isArray(parsed) ? parsed : (parsed.grants || parsed.results || []));
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks?.length) {
+            grantFinderSources.innerHTML = chunks.filter((c: any) => c.web?.uri).map((c: any) =>
+                `<li><a href="${escapeHtml(c.web.uri)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.web.title || c.web.uri)}</a></li>`
+            ).join('');
+            grantFinderSourcesWrapper.style.display = 'block';
+        }
     } catch (e) {
         handleApiError(e, grantFinderErrorDisplay, 'errorGrantServiceUnavailable');
         grantReportContainer.innerHTML = getPlaceholderHTML('placeholderGrant');
@@ -723,17 +971,20 @@ function renderRfpResults(data: any[]) {
         rfpExportButtons.style.display = 'none';
         return;
     }
-    rfpReportContainer.innerHTML = data.map(rfp => `
+    rfpReportContainer.innerHTML = data.map(rfp => {
+        const safeLink = /^https?:\/\//i.test(String(rfp.link || '')) ? String(rfp.link) : '';
+        return `
         <div class="result-card">
-            <h3>${rfp.title || 'N/A'}</h3>
-            <p class="organization">${rfp.issuingOrganization || 'N/A'}</p>
-            <p class="summary">${rfp.summary || 'N/A'}</p>
+            <h3>${escapeHtml(rfp.title || 'N/A')}</h3>
+            <p class="organization">${escapeHtml(rfp.issuingOrganization || 'N/A')}</p>
+            <p class="summary">${escapeHtml(rfp.summary || 'N/A')}</p>
             <div class="details-grid">
-                 <div class="detail-item"><span class="detail-label">Deadline:</span> <span class="detail-value deadline">${rfp.deadline || 'N/A'}</span></div>
-                 <div class="detail-item"><span class="detail-label">Eligibility:</span> <span class="detail-value">${rfp.eligibility || 'N/A'}</span></div>
+                 <div class="detail-item"><span class="detail-label">Deadline:</span> <span class="detail-value deadline">${escapeHtml(rfp.deadline || 'N/A')}</span></div>
+                 <div class="detail-item"><span class="detail-label">Eligibility:</span> <span class="detail-value">${escapeHtml(rfp.eligibility || 'N/A')}</span></div>
             </div>
-            ${rfp.link ? `<a href="${rfp.link}" target="_blank" class="result-link">View RFP</a>` : ''}
-        </div>`).join('');
+            ${safeLink ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" class="result-link">View RFP</a>` : ''}
+        </div>`;
+    }).join('');
     currentRfpText = rfpReportContainer.innerText;
     rfpExportButtons.style.display = 'grid';
 }
@@ -751,7 +1002,8 @@ async function handleFindRfps(e: Event) {
     rfpExportButtons.style.display = 'none';
     rfpFinderSourcesWrapper.style.display = 'none';
 
-    let prompt = `Find Requests for Proposals (RFPs) based on the following criteria. Respond in JSON format according to the provided schema.
+    let prompt = `Find current, real Requests for Proposals (RFPs) using web search. Return ONLY a JSON array of objects with keys: title, issuingOrganization, deadline, summary, eligibility, link.
+    Prefer real URLs. Language: ${currentLang === 'fa' ? 'Persian' : 'English'}.
     Expertise/Area: ${rfpTopicInput.value}
     Description: ${rfpDescriptionInput.value}`;
     if (rfpOrgTypeInput.value) prompt += `\nOrganization Type: ${rfpOrgTypeInput.value}`;
@@ -760,14 +1012,21 @@ async function handleFindRfps(e: Event) {
     if (rfpCountryInput.value) prompt += `\nCountry: ${rfpCountryInput.value}`;
 
     try {
-        if (!process.env.API_KEY) throw new Error('API key not valid.');
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = createAiClient();
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+            model: 'gemini-2.5-flash',
             contents: prompt,
-            config: { responseMimeType: 'application/json', responseSchema: rfpSchema },
+            config: { tools: [{ googleSearch: {} }] },
         });
-        renderRfpResults(JSON.parse(response.text.trim()));
+        const parsed = parseJsonPayload(response.text);
+        renderRfpResults(Array.isArray(parsed) ? parsed : (parsed.rfps || parsed.results || []));
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks?.length) {
+            rfpFinderSources.innerHTML = chunks.filter((c: any) => c.web?.uri).map((c: any) =>
+                `<li><a href="${escapeHtml(c.web.uri)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.web.title || c.web.uri)}</a></li>`
+            ).join('');
+            rfpFinderSourcesWrapper.style.display = 'block';
+        }
     } catch (e) {
         handleApiError(e, rfpFinderErrorDisplay, 'errorRfpServiceUnavailable');
         rfpReportContainer.innerHTML = getPlaceholderHTML('placeholderRfp');
@@ -811,22 +1070,21 @@ async function handleAnalyzeGrant(e: Event) {
     Provide a detailed summary covering: Grant Overview, Funding Details, Key Dates, Eligibility Criteria, Application Requirements, and Alignment Analysis. Use markdown.`;
 
     try {
-        if (!process.env.API_KEY) throw new Error('API key not valid.');
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = createAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: { tools: [{ googleSearch: {} }] }
         });
 
-        currentAdoptedGrantText = response.text;
+        currentAdoptedGrantText = response.text || '';
         adoptReportContainer.textContent = currentAdoptedGrantText;
         adoptExportButtons.style.display = 'grid';
 
         const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (chunks?.length) {
-            adoptFinderSources.innerHTML = chunks.filter(c => c.web?.uri).map(c => 
-                `<li><a href="${c.web.uri}" target="_blank">${c.web.title || c.web.uri}</a></li>`
+            adoptFinderSources.innerHTML = chunks.filter((c: any) => c.web?.uri).map((c: any) =>
+                `<li><a href="${escapeHtml(c.web.uri)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.web.title || c.web.uri)}</a></li>`
             ).join('');
             adoptFinderSourcesWrapper.style.display = 'block';
         }
@@ -852,21 +1110,20 @@ async function handleCustomSearch(e: Event) {
     customFinderSourcesWrapper.style.display = 'none';
 
     try {
-        if (!process.env.API_KEY) throw new Error('API key not valid.');
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = createAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: customTopicInput.value,
             config: { tools: [{ googleSearch: {} }] }
         });
 
-        currentCustomText = response.text;
+        currentCustomText = response.text || '';
         customReportContainer.textContent = currentCustomText;
 
         const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (chunks?.length) {
-            customFinderSources.innerHTML = chunks.filter(c => c.web?.uri).map(c =>
-                `<li><a href="${c.web.uri}" target="_blank">${c.web.title || c.web.uri}</a></li>`
+            customFinderSources.innerHTML = chunks.filter((c: any) => c.web?.uri).map((c: any) =>
+                `<li><a href="${escapeHtml(c.web.uri)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.web.title || c.web.uri)}</a></li>`
             ).join('');
             customFinderSourcesWrapper.style.display = 'block';
         }
@@ -894,31 +1151,40 @@ async function handleGenerateVideo(e: Event) {
     currentVideoUrl = null;
 
     try {
-        if (!window.aistudio || !(await window.aistudio.hasSelectedApiKey())) {
-            await window.aistudio.openSelectKey();
+        if (window.aistudio) {
+            try {
+                if (!(await window.aistudio.hasSelectedApiKey())) {
+                    await window.aistudio.openSelectKey();
+                }
+            } catch (studioErr) {
+                console.warn('AI Studio key selector unavailable', studioErr);
+            }
         }
-        // Re-init with selected key
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); 
 
-        videoLoadingMessage.textContent = translations[currentLang].videoLoading1;
+        const apiKey = requireApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+
+        videoLoadingMessage.textContent = t('videoLoading1');
         let operation = await ai.models.generateVideos({
             model: 'veo-3.1-fast-generate-preview',
             prompt: videoScenarioInput.value,
             config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
         });
         
-        videoLoadingMessage.textContent = translations[currentLang].videoLoading2;
+        videoLoadingMessage.textContent = t('videoLoading2');
         while (!operation.done) {
             await new Promise(resolve => setTimeout(resolve, 10000));
             operation = await ai.operations.getVideosOperation({ operation });
-            videoLoadingMessage.textContent = translations[currentLang].videoLoading3;
+            videoLoadingMessage.textContent = t('videoLoading3');
         }
 
-        videoLoadingMessage.textContent = translations[currentLang].videoLoading4;
+        videoLoadingMessage.textContent = t('videoLoading4');
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
 
         if (downloadLink) {
-            const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+            const separator = downloadLink.includes('?') ? '&' : '?';
+            const videoResponse = await fetch(`${downloadLink}${separator}key=${encodeURIComponent(apiKey)}`);
+            if (!videoResponse.ok) throw new Error('Failed to fetch generated video.');
             const videoBlob = await videoResponse.blob();
             currentVideoUrl = URL.createObjectURL(videoBlob);
             
@@ -935,9 +1201,12 @@ async function handleGenerateVideo(e: Event) {
             throw new Error("Video generation did not return a valid link.");
         }
 
-    } catch (e) {
-        if (e.message?.includes('Requested entity was not found')) {
-            await window.aistudio.openSelectKey();
+    } catch (e: any) {
+        const message = e instanceof Error ? e.message : String(e || '');
+        if (message.includes('Requested entity was not found')) {
+            if (window.aistudio?.openSelectKey) {
+                await window.aistudio.openSelectKey();
+            }
             showError(videoFinderErrorDisplay, 'errorApiKey');
         } else {
             handleApiError(e, videoFinderErrorDisplay, 'errorVideoServiceUnavailable');
@@ -953,32 +1222,46 @@ async function handleGenerateVideo(e: Event) {
 // --- Initialization ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Accordion Logic
+    // Accordion Logic — CSS handles max-height so dynamic results are not clipped
     document.querySelectorAll('.accordion-header').forEach(header => {
         header.addEventListener('click', () => {
             const accordion = header.parentElement as HTMLElement;
-            const content = header.nextElementSibling as HTMLElement;
-            
-            if (accordion.classList.contains('active')) {
-                accordion.classList.remove('active');
-                content.style.maxHeight = '0';
-            } else {
-                document.querySelectorAll('.tool-accordion.active').forEach(actAcc => {
-                    actAcc.classList.remove('active');
-                    (actAcc.querySelector('.accordion-content') as HTMLElement).style.maxHeight = '0';
-                });
-                accordion.classList.add('active');
-                content.style.maxHeight = content.scrollHeight + "px";
-            }
+            const isOpen = accordion.classList.contains('active');
+            document.querySelectorAll('.tool-accordion.active').forEach(actAcc => {
+                actAcc.classList.remove('active');
+            });
+            if (!isOpen) accordion.classList.add('active');
         });
     });
 
     // Language Switcher
-    document.querySelectorAll('.lang-switcher button').forEach(button => {
+    document.querySelectorAll('.lang-switcher button[data-lang]').forEach(button => {
         button.addEventListener('click', () => {
             currentLang = button.getAttribute('data-lang') as 'en' | 'fa';
             updateUIForLanguage();
         });
+    });
+
+    const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement | null;
+    const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+    const persistApiKey = () => {
+        const value = apiKeyInput?.value.trim() || '';
+        if (value) {
+            localStorage.setItem(API_KEY_STORAGE, value);
+            if (apiKeyInput) apiKeyInput.value = '';
+        } else {
+            localStorage.removeItem(API_KEY_STORAGE);
+        }
+        updateApiKeyStatus();
+        const status = document.getElementById('apiKeyStatus');
+        if (status && value) status.textContent = t('apiKeySaved');
+    };
+    saveApiKeyBtn?.addEventListener('click', persistApiKey);
+    apiKeyInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            persistApiKey();
+        }
     });
 
     // --- Event Listeners ---
@@ -1036,17 +1319,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Copy Button
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(reportContainer.textContent || '');
-        copyBtn.textContent = translations[currentLang].copiedButton;
-        setTimeout(() => { copyBtn.textContent = translations[currentLang].copyButton; }, 2000);
+        copyBtn.textContent = t('copiedButton');
+        setTimeout(() => { copyBtn.textContent = t('copyButton'); }, 2000);
     });
     
     // --- Export Listeners ---
     // Grant Exports
     exportPdfBtn.addEventListener('click', () => {
-        const doc = new jsPDF();
-        doc.text("Grant Opportunities", 10, 10);
-        doc.text(currentGrantText, 10, 20);
-        doc.save("grants.pdf");
+        exportTextPdf("Grant Opportunities", currentGrantText, "grants.pdf");
     });
     exportDocxBtn.addEventListener('click', async () => {
         const paragraphs = currentGrantData.map(g => new docx.Paragraph({ children: [ new docx.TextRun({ text: g.title, bold: true, size: 28 }), new docx.TextRun({ text: `Organization: ${g.organization}`, break: 1 }), new docx.TextRun({ text: `Summary: ${g.summary}`, break: 1 })], spacing: { after: 200 } }));
@@ -1058,10 +1338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // RFP Exports
     exportRfpPdfBtn.addEventListener('click', () => {
-        const doc = new jsPDF();
-        doc.text("RFP Opportunities", 10, 10);
-        doc.text(currentRfpText, 10, 20);
-        doc.save("rfps.pdf");
+        exportTextPdf("RFP Opportunities", currentRfpText, "rfps.pdf");
     });
     exportRfpDocxBtn.addEventListener('click', async () => {
         const paragraphs = currentRfpData.map(r => new docx.Paragraph({ children: [ new docx.TextRun({ text: r.title, bold: true, size: 28 }), new docx.TextRun({ text: `Organization: ${r.issuingOrganization}`, break: 1 }), new docx.TextRun({ text: `Summary: ${r.summary}`, break: 1 })], spacing: { after: 200 } }));
@@ -1073,10 +1350,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Adopted Grant Exports
     exportAdoptPdfBtn.addEventListener('click', () => {
-        const doc = new jsPDF();
-        doc.text("Grant Analysis", 10, 10);
-        doc.text(currentAdoptedGrantText, 10, 20, { maxWidth: 180 });
-        doc.save("grant-analysis.pdf");
+        exportTextPdf("Grant Analysis", currentAdoptedGrantText, "grant-analysis.pdf");
     });
     exportAdoptDocxBtn.addEventListener('click', async () => {
         const doc = new docx.Document({ sections: [{ children: [new docx.Paragraph(currentAdoptedGrantText)] }] });
@@ -1100,4 +1374,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Setup ---
     updateUIForLanguage();
-});
+
+    initWritingModules();
+    initChatWidget();
+    initHfCatalog();
+
+    fetch('/api/bots')
+        .then((r) => r.json())
+        .then((info) => {
+            const tg = document.getElementById('telegramBotLink') as HTMLAnchorElement | null;
+            const bale = document.getElementById('baleBotLink') as HTMLAnchorElement | null;
+            if (tg && info.telegram?.link) tg.href = info.telegram.link;
+            if (bale && info.bale?.link) bale.href = info.bale.link;
+        })
+        .catch(() => { /* bot server may be offline */ });
+});;

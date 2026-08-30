@@ -5,18 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:bots": "tsx server/index.ts",
+    "dev:all": "npx concurrently -k \"npm run dev\" \"npm run dev:bots\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:pages": "vite build && npx wrangler pages deploy dist --project-name findexpert-ecoai",
+    "deploy:bot": "npx wrangler deploy --config wrangler.bot.toml",
+    "dev:cf-bot": "npx wrangler dev --config wrangler.bot.toml --ip 0.0.0.0 --port 8788"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",
     "jspdf": "2.5.1",
-    "docx": "8.5.0"
+    "docx": "8.5.0",
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "tsx": "^4.20.0",
+    "@types/express": "^5.0.3",
+    "concurrently": "^9.1.2"
   }
 }
