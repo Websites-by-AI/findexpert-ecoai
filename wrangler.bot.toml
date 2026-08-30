@@ -13,7 +13,6 @@ workers_dev = true
 TELEGRAM_BOT_USERNAME = "FindExperts_bot"
 SITE_URL = "https://findexpert.ir"
 
-# Uncomment after: wrangler kv namespace create COMMUNITY
-# [[kv_namespaces]]
-# binding = "COMMUNITY"
-# id = "YOUR_KV_NAMESPACE_ID"
+[[kv_namespaces]]
+binding = "COMMUNITY"
+id = "5f508ed75ad149fcb35940f08a1c54e1"
