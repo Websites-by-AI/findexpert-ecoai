@@ -9,8 +9,7 @@ pages_build_output_dir = "dist"
 [vars]
 SITE_URL = "https://findexpert.ir"
 
-# After: npx wrangler d1 create findexpert-community
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "findexpert-community"
-# database_id = "YOUR_D1_ID"
+# Free durable store (survives sandbox/host shutdown). D1 quota on this account is full.
+[[kv_namespaces]]
+binding = "COMMUNITY"
+id = "5f508ed75ad149fcb35940f08a1c54e1"

@@ -1388,4 +1388,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bale && info.bale?.link) bale.href = info.bale.link;
         })
         .catch(() => { /* bot server may be offline */ });
+
+    fetch('/api/community')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((info) => {
+            const el = document.getElementById('communityDbStatus');
+            if (!el || !info) return;
+            const fa = document.body.classList.contains('lang-fa');
+            el.textContent = fa
+                ? `دیتابیس جامعه (Cloudflare KV، پاک نمی‌شود): ${info.users || 0} کاربر، ${info.groups || 0} گروه`
+                : `Community DB (Cloudflare KV, durable): ${info.users || 0} users, ${info.groups || 0} groups`;
+        })
+        .catch(() => { /* Pages without KV binding */ });
 });;

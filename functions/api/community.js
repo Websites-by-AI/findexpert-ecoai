@@ -1,15 +1,37 @@
-export async function onRequestGet(context) {
-  const db = context.env.DB;
-  if (!db) {
-    return Response.json({ ok: true, host: 'cloudflare-pages', db: 'not-bound', users: 0, groups: 0 });
+function emptyDb() {
+  return { users: {}, groups: {} };
+}
+
+async function loadDb(kv) {
+  if (!kv) return emptyDb();
+  const raw = await kv.get('db');
+  if (!raw) return emptyDb();
+  try {
+    const db = JSON.parse(raw);
+    return { users: db.users || {}, groups: db.groups || {} };
+  } catch {
+    return emptyDb();
   }
-  const users = await db.prepare('SELECT COUNT(*) AS n FROM users').first();
-  const groups = await db.prepare('SELECT COUNT(*) AS n FROM groups').first();
-  return Response.json({
+}
+
+export async function onRequestGet(context) {
+  const url = new URL(context.request.url);
+  const kv = context.env.COMMUNITY;
+  const db = await loadDb(kv);
+  const users = Object.keys(db.users).length;
+  const groups = Object.keys(db.groups).length;
+  const payload = {
     ok: true,
     host: 'cloudflare-pages',
-    db: 'd1',
-    users: users?.n || 0,
-    groups: groups?.n || 0,
+    db: kv ? 'kv' : 'not-bound',
+    durable: Boolean(kv),
+    backup: '/api/community/backup',
+    users,
+    groups,
+    roles: ['family', 'medic'],
+  };
+  if (url.searchParams.get('full') === '1') payload.data = db;
+  return Response.json(payload, {
+    headers: { 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
   });
 }
