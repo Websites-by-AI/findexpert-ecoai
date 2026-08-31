@@ -1,7 +1,55 @@
 {
   "kind": "findexpert-community",
-  "savedAt": "2026-08-30T11:21:13.711612Z",
+  "savedAt": "2026-08-31T09:02:06.054514Z",
   "host": "cloudflare-kv",
-  "users": {},
-  "groups": {}
+  "users": {
+    "telegram:8901984314": {
+      "id": "telegram:8901984314",
+      "role": "student",
+      "displayName": "So",
+      "updatedAt": "2026-08-30T11:25:17.423Z",
+      "groupId": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
+      "invitedBy": "telegram:8901984314"
+    },
+    "telegram:8454249259": {
+      "id": "telegram:8454249259",
+      "role": "student",
+      "displayName": "Soheil",
+      "updatedAt": "2026-08-30T13:37:01.991Z",
+      "groupId": "b6bbd20e-2bde-4514-bb8d-b739f9b522a2",
+      "invitedBy": "telegram:8454249259"
+    }
+  },
+  "groups": {
+    "ed0f0bbe-b50e-4c19-babc-bc7b6ed4127d": {
+      "id": "ed0f0bbe-b50e-4c19-babc-bc7b6ed4127d",
+      "code": "c613bc5d",
+      "ownerId": "telegram:8901984314",
+      "role": "student",
+      "title": "So",
+      "members": [
+        "telegram:8901984314"
+      ]
+    },
+    "5c837e37-de45-4f3e-85ca-1a383401f8c8": {
+      "id": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
+      "code": "6b44d4a4",
+      "ownerId": "telegram:8901984314",
+      "role": "student",
+      "title": "So",
+      "members": [
+        "telegram:8901984314"
+      ]
+    },
+    "b6bbd20e-2bde-4514-bb8d-b739f9b522a2": {
+      "id": "b6bbd20e-2bde-4514-bb8d-b739f9b522a2",
+      "code": "9219f8ba",
+      "ownerId": "telegram:8454249259",
+      "role": "student",
+      "title": "👥 گروه علمی",
+      "members": [
+        "telegram:8454249259"
+      ]
+    }
+  }
 }
