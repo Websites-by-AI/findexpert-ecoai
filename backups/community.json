@@ -1,6 +1,6 @@
 {
   "kind": "findexpert-community",
-  "savedAt": "2026-08-31T09:02:06.054514Z",
+  "savedAt": "2026-09-01T08:05:18.450732Z",
   "host": "cloudflare-kv",
   "users": {
     "telegram:8901984314": {
@@ -16,7 +16,7 @@
       "role": "student",
       "displayName": "Soheil",
       "updatedAt": "2026-08-30T13:37:01.991Z",
-      "groupId": "b6bbd20e-2bde-4514-bb8d-b739f9b522a2",
+      "groupId": "97584c27-01e5-4d71-a1a5-c490a3f87906",
       "invitedBy": "telegram:8454249259"
     }
   },
@@ -47,6 +47,16 @@
       "ownerId": "telegram:8454249259",
       "role": "student",
       "title": "👥 گروه علمی",
+      "members": [
+        "telegram:8454249259"
+      ]
+    },
+    "97584c27-01e5-4d71-a1a5-c490a3f87906": {
+      "id": "97584c27-01e5-4d71-a1a5-c490a3f87906",
+      "code": "104720f4",
+      "ownerId": "telegram:8454249259",
+      "role": "student",
+      "title": "گروه من",
       "members": [
         "telegram:8454249259"
       ]
