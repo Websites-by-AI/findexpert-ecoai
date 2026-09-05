@@ -1,17 +1,17 @@
 {
   "kind": "findexpert-community",
-  "savedAt": "2026-09-04T07:37:41.798033Z",
+  "savedAt": "2026-09-05T07:11:42.667715Z",
   "host": "cloudflare-kv",
   "users": {
     "telegram:8901984314": {
       "id": "telegram:8901984314",
       "role": "student",
       "displayName": "So",
-      "updatedAt": "2026-09-03T10:42:05.993Z",
+      "updatedAt": "2026-09-04T16:30:29.852Z",
       "groupId": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
       "invitedBy": "telegram:8901984314",
-      "lastTopic": "🎓 مقاله / پروپوزال علمی",
-      "module": "pipeline"
+      "lastTopic": "🌱 یابنده گرنت",
+      "module": "grant"
     },
     "telegram:8454249259": {
       "id": "telegram:8454249259",
