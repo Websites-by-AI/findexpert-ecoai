@@ -1,17 +1,17 @@
 {
   "kind": "findexpert-community",
-  "savedAt": "2026-09-11T07:34:55.478848Z",
+  "savedAt": "2026-09-12T07:25:58.220846Z",
   "host": "cloudflare-kv",
   "users": {
     "telegram:8901984314": {
       "id": "telegram:8901984314",
       "role": "researcher",
       "displayName": "So",
-      "updatedAt": "2026-09-05T15:48:17.105Z",
+      "updatedAt": "2026-09-12T05:56:10.900Z",
       "groupId": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
       "invitedBy": "telegram:8901984314",
       "lastTopic": "تست",
-      "module": "rag"
+      "module": "grant"
     },
     "telegram:8454249259": {
       "id": "telegram:8454249259",
