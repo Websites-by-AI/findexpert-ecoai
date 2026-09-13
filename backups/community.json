@@ -1,17 +1,20 @@
 {
   "kind": "findexpert-community",
-  "savedAt": "2026-09-12T07:25:58.220846Z",
+  "savedAt": "2026-09-13T07:44:54.695735Z",
   "host": "cloudflare-kv",
   "users": {
     "telegram:8901984314": {
       "id": "telegram:8901984314",
-      "role": "researcher",
+      "role": "founder",
       "displayName": "So",
-      "updatedAt": "2026-09-12T05:56:10.900Z",
+      "updatedAt": "2026-09-12T11:58:49.536Z",
       "groupId": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
       "invitedBy": "telegram:8901984314",
-      "lastTopic": "تست",
-      "module": "grant"
+      "lastTopic": "Soheil Sa:\nفرصت حضور زنان در بوت کمپ استانبول\n\nاین برنامه هنوز باز هست و فقط برای زنان هست و در ترکیه اگر خانمی رو دارید که بخواهد وارد برنامه بود کمپ با جایزه حدود ۳۵۰,۰۰۰ لیر بشه خبر بدید و البته برای تاریخی که شروع می",
+      "module": "rag",
+      "advisorTrack": "international",
+      "advisorStep": 1,
+      "advisorTopic": "Soheil Sa:\nفرصت حضور زنان در بوت کمپ استانبول\n\nاین برنامه هنوز باز هست و فقط برای زنان هست و در ترکیه اگر خانمی رو دارید که بخواهد وارد برنامه بود کمپ با جایزه "
     },
     "telegram:8454249259": {
       "id": "telegram:8454249259",
