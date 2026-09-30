@@ -1,70 +1,7 @@
 {
   "kind": "findexpert-community",
-  "savedAt": "2026-09-29T09:14:34.203128Z",
+  "savedAt": "2026-09-30T09:07:43.287652Z",
   "host": "cloudflare-kv",
-  "users": {
-    "telegram:8901984314": {
-      "id": "telegram:8901984314",
-      "role": "founder",
-      "displayName": "So",
-      "updatedAt": "2026-09-12T11:58:49.536Z",
-      "groupId": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
-      "invitedBy": "telegram:8901984314",
-      "lastTopic": "Soheil Sa:\nفرصت حضور زنان در بوت کمپ استانبول\n\nاین برنامه هنوز باز هست و فقط برای زنان هست و در ترکیه اگر خانمی رو دارید که بخواهد وارد برنامه بود کمپ با جایزه حدود ۳۵۰,۰۰۰ لیر بشه خبر بدید و البته برای تاریخی که شروع می",
-      "module": "rag",
-      "advisorTrack": "international",
-      "advisorStep": 1,
-      "advisorTopic": "Soheil Sa:\nفرصت حضور زنان در بوت کمپ استانبول\n\nاین برنامه هنوز باز هست و فقط برای زنان هست و در ترکیه اگر خانمی رو دارید که بخواهد وارد برنامه بود کمپ با جایزه "
-    },
-    "telegram:8454249259": {
-      "id": "telegram:8454249259",
-      "role": "student",
-      "displayName": "Soheil",
-      "updatedAt": "2026-08-30T13:37:01.991Z",
-      "groupId": "97584c27-01e5-4d71-a1a5-c490a3f87906",
-      "invitedBy": "telegram:8454249259"
-    }
-  },
-  "groups": {
-    "ed0f0bbe-b50e-4c19-babc-bc7b6ed4127d": {
-      "id": "ed0f0bbe-b50e-4c19-babc-bc7b6ed4127d",
-      "code": "c613bc5d",
-      "ownerId": "telegram:8901984314",
-      "role": "student",
-      "title": "So",
-      "members": [
-        "telegram:8901984314"
-      ]
-    },
-    "5c837e37-de45-4f3e-85ca-1a383401f8c8": {
-      "id": "5c837e37-de45-4f3e-85ca-1a383401f8c8",
-      "code": "6b44d4a4",
-      "ownerId": "telegram:8901984314",
-      "role": "student",
-      "title": "So",
-      "members": [
-        "telegram:8901984314"
-      ]
-    },
-    "b6bbd20e-2bde-4514-bb8d-b739f9b522a2": {
-      "id": "b6bbd20e-2bde-4514-bb8d-b739f9b522a2",
-      "code": "9219f8ba",
-      "ownerId": "telegram:8454249259",
-      "role": "student",
-      "title": "👥 گروه علمی",
-      "members": [
-        "telegram:8454249259"
-      ]
-    },
-    "97584c27-01e5-4d71-a1a5-c490a3f87906": {
-      "id": "97584c27-01e5-4d71-a1a5-c490a3f87906",
-      "code": "104720f4",
-      "ownerId": "telegram:8454249259",
-      "role": "student",
-      "title": "گروه من",
-      "members": [
-        "telegram:8454249259"
-      ]
-    }
-  }
+  "users": {},
+  "groups": {}
 }
